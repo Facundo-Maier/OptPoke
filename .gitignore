@@ -1,0 +1,35 @@
+# Local databases and private progress
+*.db
+*.db-shm
+*.db-wal
+private_imports/
+backups/
+.env
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+# Frontend / editor
+node_modules/
+.vscode/
+.DS_Store
+
+# Persistent media cache (normally under ~/.optpoke/)
+sprites/
+.optpoke/
+
+# Imports, exports and build artifacts
+*.xlsx
+*.xlsm
+*.xls
+*.sqlite*
+*.zip
+*.tar.gz
+*backup*.json
+*respaldo*.json
+.env.*
+dist/
+
+# Capturas locales: no publicar
+/docs/screenshot-*.png

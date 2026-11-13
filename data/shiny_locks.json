@@ -1,0 +1,42 @@
+{
+  "version": "2026-11-12-v1",
+  "scope": "Global: shiny no lanzado legalmente en ninguna versión disponible según las fuentes consultadas; no es un bloqueo por juego. Revisar tras nuevos lanzamientos.",
+  "reviewed_on": "2026-11-12",
+  "sources": [
+    "https://www.serebii.net/games/shiny.shtml",
+    "https://pokepc.net/articles/pokemon/unreleased-shinies?lang=en",
+    "https://bulbapedia.bulbagarden.net/wiki/List_of_Shiny-locked_Pok%C3%A9mon"
+  ],
+  "locked_shiny_keys": [
+    "victini",
+    "vivillon-19",
+    "hoopa",
+    "hoopa-1",
+    "cosmog",
+    "cosmoem",
+    "magearna",
+    "magearna-1",
+    "marshadow",
+    "kubfu",
+    "urshifu",
+    "urshifu-1",
+    "zarude",
+    "zarude-1",
+    "glastrier",
+    "spectrier",
+    "calyrex",
+    "ursaluna-1",
+    "walking wake",
+    "iron leaves",
+    "okidogi",
+    "munkidori",
+    "fezandipiti",
+    "ogerpon",
+    "gouging fire",
+    "raging bolt",
+    "iron boulder",
+    "iron crown",
+    "terapagos",
+    "pecharunt"
+  ]
+}

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="theme-color" content="#111c1a"/>
+  <meta name="description" content="Organizador local de Living Shiny Dex, cacerías y Pokémon Bank."/>
+  <title>Opt. Poke | Living Shiny Dex</title>
+  <link rel="stylesheet" href="/static/styles.css?v=0.1.99"/>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">✦</span><div><div class="brand-name">Opt<span>.</span> Poke</div><div class="brand-sub">LIVING DEX MANAGER</div></div></div>
+    <div class="nav-label">COLECCIÓN</div>
+    <nav aria-label="Secciones">
+      <button class="nav-item selected" data-page="shiny"><span class="nav-icon">✧</span> Shiny Dex <span class="nav-arrow">›</span></button>
+      <button class="nav-item" data-page="normal"><span class="nav-icon">▦</span> Living Dex <span class="nav-arrow">›</span></button>
+      <button class="nav-item" data-page="bank"><span class="nav-icon">◴</span> Plan Bank <span class="nav-arrow">›</span></button>
+    </nav>
+    <div class="nav-label">HERRAMIENTAS</div>
+    <nav>
+      <button class="nav-item" data-page="hunts"><span class="nav-icon">◉</span> Cacerías <span class="nav-arrow">›</span></button>
+      <button class="nav-item" data-page="compare"><span class="nav-icon">↗</span> Comparador <span class="nav-arrow">›</span></button>
+      <button class="nav-item" data-page="settings"><span class="nav-icon">⚙</span> Configuración <span class="nav-arrow">›</span></button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="local-status"><span class="status-dot"></span> Datos guardados localmente</div>
+      <small>v0.1.99 · Unova Dex</small>
+    </div>
+  </aside>
+  <div class="main-area">
+    <header class="topbar"><div class="breadcrumb"><span class="crumb-root">COLECCIÓN</span><span class="crumb-arrow">/</span><span id="breadcrumb-current">Shiny Dex</span></div><div class="top-right"><span class="top-status"><span class="status-dot"></span> Local</span><span class="avatar">OP</span></div></header>
+    <main id="app" tabindex="-1"><div class="loading">Preparando colección…</div></main>
+  </div>
+</div>
+<div id="modal-layer" class="modal-layer hidden" role="presentation"><div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-head"><h2 id="modal-title">Editar</h2><button id="modal-close" class="icon-btn" aria-label="Cerrar">×</button></div><div id="modal-content"></div></div></div>
+<div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+<script src="/static/sprites.js?v=0.1.99" defer></script>
+<script src="/static/dex-list.js?v=0.1.99" defer></script>
+<script src="/static/app.js?v=0.1.99" defer></script>
+</body>
+</html>

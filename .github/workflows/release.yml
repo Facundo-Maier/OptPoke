@@ -1,0 +1,35 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+jobs:
+  checks:
+    uses: ./.github/workflows/tests.yml
+  release:
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate tag and version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python scripts/check_release.py
+      - name: Package tracked source only
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python scripts/check_public.py
+          git archive --format=zip --prefix=OptPoke/ --output="OptPoke-${RELEASE_TAG}.zip" HEAD
+          sha256sum "OptPoke-${RELEASE_TAG}.zip" > SHA256SUMS
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh release create "$RELEASE_TAG" "OptPoke-${RELEASE_TAG}.zip" SHA256SUMS --verify-tag --draft --title "Opt. Poke ${RELEASE_TAG}" --generate-notes
