@@ -2,7 +2,10 @@
 
 Organizador local de Living Shiny Dex, objetivos Bank y cacerías.
 Python 3.11+ y navegador; FastAPI, SQLite y JavaScript sin compilación.
-Versión de desarrollo: **0.1.99**. El comparador de métodos sigue pendiente.
+Versión de desarrollo: **0.1.99**. Shiny Dex y Living Dex son las secciones
+funcionales verificadas. Bank, Cacerías, Comparador y otras herramientas son
+provisionales: contienen bases de implementación o placeholders y todavía
+no se presentan como funciones completas.
 
 ## Instalación
 

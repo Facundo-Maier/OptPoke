@@ -89,7 +89,7 @@ erDiagram
 - Importar una nueva versión **modificada** del Excel Bank no actualiza ni elimina tareas ya importadas; debe hacerse como una migración validada.
 - El estado de Shiny Charm se guarda por juego, no por partida todavía.
 
-- Las cuatro fases de Azelf sin número en el Excel se conservan como **fases sin intento conocido**; no se inventa una posición temporal.
+- Las fases sin número en un Excel se conservan como **fases sin intento conocido**; no se inventa una posición temporal.
 
 ## Campo de OT (v0.1.6)
 
