@@ -56,7 +56,7 @@
     if (pokemon === 'sinistea' || pokemon === 'polteageist') return /phony/i.test(form) ? pokemon : `${pokemon}-antique`;
     if (pokemon === 'poltchageist') return /counterfeit/i.test(form) ? pokemon : `${pokemon}-artisan`;
     if (pokemon === 'sinistcha') return /unremarkable/i.test(form) ? pokemon : `${pokemon}-masterpiece`;
-    if (pokemon === 'dudunsparce') return /2 segment/i.test(form) ? pokemon : 'dudunsparce-three';
+    if (pokemon === 'dudunsparce') return /2 segment/i.test(form) ? pokemon : /3 segment/i.test(form) ? 'dudunsparce-threesegment' : null;
     if (pokemon === 'tatsugiri') return /curly/i.test(form) ? pokemon : `${pokemon}-${compact}`;
     if (pokemon === 'basculin') return /red/i.test(form) ? pokemon : `${pokemon}-${compact.replace('stripe','striped')}`;
     if (pokemon === 'toxtricity') return /amped/i.test(form) ? pokemon : 'toxtricity-lowkey';
@@ -65,7 +65,7 @@
       return /red/i.test(form) ? pokemon : `${pokemon}-${slug(value.replace(/ flower$/, ''))}`;
     }
     if (pokemon === 'squawkabilly') return /green/i.test(form) ? pokemon : `${pokemon}-${compact}`;
-    if (pokemon === 'deerling' || pokemon === 'sawsbuck') return /spring/i.test(form) ? pokemon : `${pokemon}-${compact}`;
+    if (pokemon === 'deerling' || pokemon === 'sawsbuck') return /spring/i.test(form) ? pokemon : `${pokemon}-${value === 'fall' ? 'autumn' : compact}`;
     if (pokemon === 'lycanroc') return /midday/i.test(form) ? pokemon : `${pokemon}-${compact}`;
     if (pokemon === 'zarude') return /dada/i.test(form) ? `${pokemon}-dada` : pokemon;
     if (pokemon === 'hoopa') return /unbound/i.test(form) ? `${pokemon}-unbound` : pokemon;
@@ -118,6 +118,11 @@
     if (variant) {
       add(`${SHOWDOWN}/${shiny ? 'dex-shiny' : 'dex'}/${variant}.png`, 'pixel');
       add(`${SHOWDOWN}/${shiny ? 'ani-shiny' : 'ani'}/${variant}.gif`, 'render');
+      // World Cap has an exact normal HOME render but no dex/animated asset.
+      // Never use this normal render for a shiny requested by the Shiny Dex.
+      if (!shiny && slug(item.species) === 'pikachu' && item.form_name === 'World Cap') {
+        add(`${SHOWDOWN}/home/pikachu-world.png`, 'render');
+      }
     }
     // For forms without images in Showdown, PokeAPI's variety API can provide
     // a form-specific HOME render. See loadSprite() below.
