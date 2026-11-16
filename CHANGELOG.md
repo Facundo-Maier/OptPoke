@@ -1,5 +1,10 @@
 ## Sin publicar
 
+- Corregidas cuatro rutas de sprites detectadas por la auditoría local: Deerling (Fall), Sawsbuck (Fall), Dudunsparce (3 Segment) shiny y Pikachu World Cap normal.
+- Alias ajustados a los nombres reales de Showdown (`autumn`, `threesegment`) y respaldo HOME exacto para World Cap. Se conserva la prohibición de usar un render normal en la Shiny Dex.
+- Tres pruebas de regresión nuevas; sin cambios en SQLite, progresos ni caché existente.
+
+
 - Auditoría reproducible de sprites: inventario offline de caché, pruebas de regresión y comprobación online opcional con límite explícito.
 - Guía `docs/SPRITES.md` y actualización de README, arquitectura, roadmap e instrucciones de releases para el estado publicado v0.1.99.
 - Sin cambios de base de datos, API, sprites descargados ni progreso personal.
