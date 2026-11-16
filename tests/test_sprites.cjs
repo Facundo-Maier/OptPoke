@@ -73,3 +73,25 @@ test('browser sprite references go through the local disk cache', () => {
   assert.equal(proxied, '/api/sprites/image?url='+encodeURIComponent(url));
   assert(!proxied.startsWith('https://'));
 });
+
+test('Fall season uses an exact Autumn shiny sprite for Deerling and Sawsbuck', () => {
+  for (const [dex, species] of [[585, 'Deerling'], [586, 'Sawsbuck']]) {
+    const sources = spriteSources(pokemon(dex, species, 'Fall'), true);
+    assert.match(sources[0].url, new RegExp('dex-shiny/' + species.toLowerCase() + '-autumn\\.png$'));
+    assert(sources.every(s => !s.url.endsWith('/' + species.toLowerCase() + '.png')));
+  }
+});
+
+test('Dudunsparce three segments use the Showdown threesegment filename', () => {
+  const sources = spriteSources(pokemon(982, 'Dudunsparce', '3 Segment'), true);
+  assert.match(sources[0].url, /dex-shiny\/dudunsparce-threesegment\.png$/);
+  assert(sources.every(s => !s.url.endsWith('/dudunsparce.png')));
+});
+
+test('World Cap Pikachu has the exact HOME render in Living, never shiny fallback', () => {
+  const normal = spriteSources(pokemon(25, 'Pikachu', 'World Cap'), false);
+  const shiny = spriteSources(pokemon(25, 'Pikachu', 'World Cap'), true);
+  assert(normal.some(s => s.url.endsWith('/home/pikachu-world.png') && s.kind === 'render'));
+  assert(shiny.every(s => !s.url.endsWith('/home/pikachu-world.png')));
+  assert(normal.every(s => !s.url.endsWith('/pikachu.png')));
+});
