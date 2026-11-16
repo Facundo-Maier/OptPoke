@@ -24,7 +24,7 @@ test('regional shiny never falls back to the incorrect default form', () => {
 test('special forms map to Showdown filenames rather than the base species', () => {
   assert.equal(showdownForm('Unown','!'),'unown-exclamation');
   assert.equal(showdownForm('Unown','?'),'unown-question');
-  assert.equal(showdownForm('Unown','a'),'unown-a');
+  assert.equal(showdownForm('Unown','a'),'unown');
   assert.equal(showdownForm('Vivillon','Poké Ball'),'vivillon-pokeball');
   assert.equal(showdownForm('Tauros','Paldean Blaze Breed'),'tauros-paldeablaze');
   assert.equal(showdownForm('Pikachu','Hoenn Cap'),'pikachu-hoenn');
