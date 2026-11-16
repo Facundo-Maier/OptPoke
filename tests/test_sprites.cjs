@@ -95,3 +95,27 @@ test('World Cap Pikachu has the exact HOME render in Living, never shiny fallbac
   assert(shiny.every(s => !s.url.endsWith('/home/pikachu-world.png')));
   assert(normal.every(s => !s.url.endsWith('/pikachu.png')));
 });
+
+test('Default visual variants use exact base filenames in both collections', () => {
+  const cases = [
+    [201, 'Unown', 'a', 'unown'],
+    [741, 'Oricorio', 'Baile Style', 'oricorio'],
+    [774, 'Minior', 'Red Core', 'minior'],
+  ];
+  for (const [dex, species, form, file] of cases) {
+    for (const shiny of [true,false]) {
+      const sources = spriteSources(pokemon(dex, species, form), shiny);
+      const dir = shiny ? 'dex-shiny' : 'dex';
+      assert.match(sources[0].url, new RegExp('/' + dir + '/' + file + '\\.png$'));
+      assert(sources.every(s => !s.url.endsWith('/' + file + '-a.png')));
+      assert(sources.every(s => !s.url.endsWith('/' + file + '-baile.png')));
+      assert(sources.every(s => !s.url.endsWith('/' + file + '-red.png')));
+    }
+  }
+});
+
+test('Alternate variants remain distinct from default Unown, Oricorio and Minior', () => {
+  assert.equal(showdownForm('Unown', 'b'), 'unown-b');
+  assert.equal(showdownForm('Oricorio', 'Sensu Style'), 'oricorio-sensu');
+  assert.equal(showdownForm('Minior', 'Blue Core'), 'minior-blue');
+});
