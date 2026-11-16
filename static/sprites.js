@@ -27,7 +27,7 @@
     const value = String(form || '').toLowerCase().trim();
     const compact = slug(form);
     if (baseForm(form)) return pokemon;
-    if (pokemon === 'unown') return `${pokemon}-${value === '!' ? 'exclamation' : value === '?' ? 'question' : compact || 'a'}`;
+    if (pokemon === 'unown') return value === 'a' ? pokemon : `${pokemon}-${value === '!' ? 'exclamation' : value === '?' ? 'question' : compact || 'a'}`;
     if (pokemon === 'zygarde') return value === '0.5' ? pokemon : value === '0.1' ? 'zygarde-10' : null;
     if (pokemon === 'maushold') return value === 'family of 3' ? pokemon : value === 'family of 4' ? 'maushold-four' : null;
     if (pokemon === 'tauros') {
@@ -43,8 +43,8 @@
     if (pokemon === 'pikachu' && value.endsWith(' cap')) return `${pokemon}-${slug(value.replace(/ cap$/, ''))}`;
     if (pokemon === 'magearna' && /original/i.test(form)) return 'magearna-original';
     if (pokemon === 'urshifu') return /single/i.test(form) ? pokemon : /rapid/i.test(form) ? 'urshifu-rapidstrike' : null;
-    if (pokemon === 'minior') return `${pokemon}-${slug(value.replace(/ core$/, ''))}`;
-    if (pokemon === 'oricorio') return `${pokemon}-${slug(value.replace(/ style$/, ''))}`;
+    if (pokemon === 'minior') return /red core/i.test(value) ? pokemon : `${pokemon}-${slug(value.replace(/ core$/, ''))}`;
+    if (pokemon === 'oricorio') return /baile/i.test(value) ? pokemon : `${pokemon}-${slug(value.replace(/ style$/, ''))}`;
     if (pokemon === 'pumpkaboo' || pokemon === 'gourgeist') {
       return /average/i.test(form) ? pokemon : `${pokemon}-${compact}`;
     }
