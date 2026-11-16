@@ -67,3 +67,11 @@ Para resolver una ausencia:
 5. Si una fuente antes devolvió 404 y ahora existe, invalidá solo el marcador de ausencia correspondiente, no toda la caché.
 
 No es necesario descargar las 2.498 entradas de la Pokédex: primero auditamos lo que ya existe y hacemos comprobaciones puntuales. La auditoría completa depende de la caché real de tu instalación WSL; **no puede inferirse únicamente del repositorio**.
+
+## Casos resueltos a partir del informe del 16/11/2026
+
+- Shiny Deerling y Sawsbuck, forma `Fall`: Showdown utiliza `autumn`.
+- Shiny Dudunsparce, `3 Segment`: Showdown utiliza `threesegment`.
+- Living Pikachu, `World Cap`: el render exacto se encuentra en `sprites/home/pikachu-world.png`.
+
+Estos cuatro cambios usan rutas nuevas: los registros 404 de rutas anteriores no necesitan borrarse. Luego de actualizar la rama, visitar los Pokémon o ejecutar la auditoría opcional con un límite pequeño para llenar la caché; finalmente verificar visualmente las imágenes. Los demás 190 casos del informe inicial siguen **sin comprobar**, no necesariamente sin imagen.
