@@ -2,7 +2,8 @@
 
 - Corregidas cuatro rutas de sprites detectadas por la auditoría local: Deerling (Fall), Sawsbuck (Fall), Dudunsparce (3 Segment) shiny y Pikachu World Cap normal.
 - Alias ajustados a los nombres reales de Showdown (`autumn`, `threesegment`) y respaldo HOME exacto para World Cap. Se conserva la prohibición de usar un render normal en la Shiny Dex.
-- Tres pruebas de regresión nuevas; sin cambios en SQLite, progresos ni caché existente.
+- Alias adicionales para Unown A, Oricorio Baile y Minior Red Core (forma base en Showdown), correspondientes a 5 registros con 404 y uno aún sin comprobar de la segunda auditoría.
+- Cinco pruebas de regresión nuevas; sin cambios en SQLite, progresos ni caché existente.
 
 
 - Auditoría reproducible de sprites: inventario offline de caché, pruebas de regresión y comprobación online opcional con límite explícito.
