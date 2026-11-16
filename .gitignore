@@ -33,3 +33,6 @@ dist/
 
 # Capturas locales: no publicar
 /docs/screenshot-*.png
+
+# Informes locales de auditoría (pueden revelar rutas de usuario)
+reportes_sprites/
