@@ -1,55 +1,47 @@
-# Hoja de ruta
+# Hoja de ruta — Opt. Poke
 
-## v0.1 — Base funcional (este paquete)
+**Referencia:** v0.1.99 (noviembre de 2026). Este documento recoge el trabajo pendiente; el historial de versiones está en [CHANGELOG](../CHANGELOG.md).
 
-- [x] Catálogo LITE shiny y normal reconciliado
-- [x] Pokédex con búsqueda, ordenación, filtros y objetivos extra
-- [x] Candado manual / estado sin verificar
-- [x] SQLite local con separación de progreso
-- [x] Importación inicial de tareas Bank y ShinyHunts por CLI
-- [x] Panel Bank con cantidades capturadas / en HOME
-- [x] Contador de cacerías, fases y probabilidad fija
-- [x] Lista de juegos disponibles + Shiny Charm
-- [x] Copias JSON exportables e importables
-- [x] Pruebas básicas y documentación
+## Hecho en v0.1.x
 
-## v0.1.1 — Imágenes y formas (implementado parcialmente)
+- [x] Catálogo LivingFormLITE y S-LivingFormLITE actualizado (1.284 entradas normales y 1.214 shiny).
+- [x] Pokédex en lista, con progreso en HOME, edición, búsqueda, filtros, candados y marcador de OT ajeno.
+- [x] Paginación por rangos, estética Teselia/Unova, cabecera y sprite seleccionado persistentes.
+- [x] Persistencia SQLite local, copias de seguridad JSON y datos privados separados del código.
+- [x] Caché persistente de sprites, modo offline e importadores XLSX independientes con vista previa.
+- [x] Base de tareas Bank y registro de cacerías.
+- [x] Pruebas Python/JavaScript, CI y primera release pública v0.1.99.
 
-- [x] Sprites de formas regionales y variantes desde Showdown
-- [x] Respaldo a modelos renderizados de Pokémon HOME para formas base
-- [x] Imágenes animadas de algunas formas específicas (incluido Alcremie)
-- [ ] Verificar uno a uno los casos especiales que todavía carezcan de imagen
+## Cierre de imágenes previo a v0.2
 
-## v0.2 — Progreso real y tareas Bank
+- [x] Herramienta reproducible de auditoría local de sprites, sin red por defecto: `scripts/auditar_sprites.cjs`.
+- [x] Documentar estados y comprobación opcional por lotes: [SPRITES.md](SPRITES.md).
+- [ ] Ejecutar el informe en la instalación WSL real, porque la caché personal no está en GitHub.
+- [ ] Revisar manualmente las formas especiales y corregir alias/imágenes exactas con sus pruebas.
+- [ ] Registrar los casos sin fuente válida sin reemplazarlos por formas o colores incorrectos.
 
-- [x] Importadores para las dos copias actualizadas de Google Sheets (XLSX separados Shiny/Living), con vista previa y aplicación local confirmada
-- [ ] Revisar y definir el estado `EVO` antes de importarlo
-- [ ] Vinculación confirmada Bank → forma del catálogo
-- [ ] Unificar progreso transferido a HOME sin duplicarlo
-- [ ] Control más cómodo de transferencias por partida
-- [ ] Completar / validar sprites shiny de variantes sin cobertura
+## v0.2 — Progreso y Pokémon Bank
+
+- [ ] Aclarar el valor `EVO` en AustinJohn; actualmente se omite en las importaciones.
+- [ ] Vincular cada tarea de Bank a la forma correspondiente de la Pokédex con coincidencias verificadas.
+- [ ] Mantener un único progreso en HOME, sin contar dos veces ejemplares o transferencias.
+- [ ] Mejorar el seguimiento de tareas y transferencias por juego.
 
 ## v0.3 — Cacerías avanzadas
 
-- [ ] Calculadora modular para probabilidades variables
-- [ ] Registro de sesiones, fases especiales y cronómetro
-- [ ] Personalizar tiempos por método y juego
-- [ ] Análisis de duración estimada vs. observada
+- [ ] Probabilidades variables por método (SOS, cadenas, etc.).
+- [ ] Sesiones, fases y contadores; tiempos por intento editables.
+- [ ] Estadísticas de tiempo previsto y observado.
 
-## v0.4 — Comparador inteligente
+## v0.4 — Comparador de métodos
 
-- [ ] Métodos versionados por juego, con fuentes y fecha
-- [ ] Filtros de OT propio / excepciones inevitables
-- [ ] Reglas de legalidad y clonación dentro del juego
-- [ ] Comparación por tiempo esperado, con requisitos y preparación
-- [ ] Revisión de Pokémon y formas de juegos nuevos
+- [ ] Métodos versionados por juego y fuentes verificadas.
+- [ ] Filtros de juegos, Shiny Charm y OT; clonación legítima dentro del juego.
+- [ ] Comparación de duración prevista, requisitos y preparación.
+- [ ] Incorporación verificada de nuevas especies, formas y métodos.
 
-## Para publicar
+## Calidad y publicación
 
-- [ ] Generar nuevas capturas de la demo; las capturas heredadas no se distribuyen
-- [x] Demo con datos ficticios que no revele progreso personal
-- [x] Pipeline CI preparado (ejecución remota pendiente del primer push)
-- [x] Flujo de releases y etiquetas semánticas preparado (sin publicar)
-- [x] Avisos de atribución de datos/sprites y licencia de código propia
-
-**Estado v0.1.2:** candados shiny globales iniciales implementados; pendiente automatizar verificación de cambios de disponibilidad en próximos juegos y eventos.
+- [x] Documentación, licencia MIT del código, atribución de fuentes y demo ficticia.
+- [x] GitHub Actions y release pública v0.1.99.
+- [ ] Revisar licencias de nuevos recursos y que nunca se publiquen Excel, cachés, capturas con progreso ni bases privadas.

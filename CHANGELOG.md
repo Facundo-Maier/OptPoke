@@ -1,5 +1,10 @@
 ## Sin publicar
 
+- Auditoría reproducible de sprites: inventario offline de caché, pruebas de regresión y comprobación online opcional con límite explícito.
+- Guía `docs/SPRITES.md` y actualización de README, arquitectura, roadmap e instrucciones de releases para el estado publicado v0.1.99.
+- Sin cambios de base de datos, API, sprites descargados ni progreso personal.
+
+
 - Demo ficticia temporal y aislada del progreso personal.
 - CI ampliado y releases en borrador con etiquetas SemVer y checksums.
 - Licencia MIT, atribuciones y copia pública sin respaldos ni capturas heredadas.

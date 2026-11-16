@@ -50,6 +50,18 @@ Para actualizar: detener el servidor, ejecutar `git pull --ff-only`, instalar
 `pip install -r requirements.txt` y volver a iniciarlo. No reemplazar la base ni
 restaurar un respaldo antiguo. Antes de actualizar, exportar un respaldo propio.
 
+## Auditoría de sprites (opcional)
+
+Para comprobar las imágenes de tu caché local **sin acceder a Internet**:
+
+```bash
+node scripts/auditar_sprites.cjs --solo-especiales
+```
+
+Se generan informes CSV/JSON en `reportes_sprites/` (ignorados por Git).
+`sin_comprobar` significa que todavía no se consultó una fuente, **no** que falte el sprite. Un archivo cacheado tampoco garantiza que su variante o color sea correcto.
+La [guía de auditoría](docs/SPRITES.md) explica cómo revisar las formas y cómo ejecutar comprobaciones externas opcionales y limitadas mediante el servidor local.
+
 ## Desarrollo
 
 ```bash

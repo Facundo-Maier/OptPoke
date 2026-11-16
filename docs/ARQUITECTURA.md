@@ -1,4 +1,4 @@
-# Arquitectura — Opt. Poke v0.1
+# Arquitectura — Opt. Poke v0.1.99
 
 ## Principios
 
@@ -71,6 +71,10 @@ erDiagram
 - El archivo combinado antiguo de AustinJohn no refleja el progreso vigente. Ahora se admiten las **dos exportaciones actualizadas y separadas**, cada una con su vista previa y confirmación.
 - La forma shiny «bloqueada» no se puede deducir solo de estar en la hoja shiny. Se guarda por ahora `unverified`, editable con candado manual.
 
+## Auditoría local de sprites (revisión previa a v0.2)
+
+`scripts/auditar_sprites.cjs` utiliza las mismas funciones `spriteSources()` y `pokeApiVariety()` que la interfaz, y reconstruye las rutas de caché mediante hashes SHA-256 compatibles con `app/sprite_cache.py`. No cambia el esquema SQLite ni descarga imágenes por defecto. Los informes `reportes_sprites/` se excluyen de Git. La [guía](SPRITES.md) distingue imágenes cacheadas, fuentes aún no probadas, 404 y validación visual pendiente.
+
 ## Decisiones futuras
 
 1. Vincular automáticamente cada tarea Bank con `form_key` y con ejemplares concretos.
@@ -80,7 +84,7 @@ erDiagram
 5. Añadir perfiles de partida y condiciones necesarias (Shiny Charm, cadenas, encuentros, etc.).
 6. Modelar la probabilidad variable por intento (SOS, cadenas) con modelos independientes.
 
-## Limitaciones conocidas de v0.1
+## Limitaciones conocidas de v0.1.99
 
 - Bank y Pokédex no se sincronizan aún de manera automática porque no existe correspondencia revisada entre sus registros.
 - El comparador está reservado para una versión futura y no calcula el «mejor método» todavía.
