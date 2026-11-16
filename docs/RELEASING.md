@@ -1,32 +1,26 @@
-# Releases
+# Releases de Opt. Poke
 
-El mecanismo está preparado; no se ha creado ninguna etiqueta ni release remota.
-Primera etiqueta prevista: `v0.1.99`, conservando la versión de origen. La próxima
-versión funcional podrá ser `v0.2.0` cuando alcance los objetivos del roadmap.
+La primera release pública, **[v0.1.99](https://github.com/Facundo-Maier/OptPoke/releases/tag/v0.1.99)**, se publicó el 13 de noviembre de 2026 con ZIP y `SHA256SUMS`. No se deben volver a crear ni mover esa etiqueta.
 
-Usar SemVer: MAJOR para incompatibilidades de la API/formatos estables, MINOR
-para funciones compatibles y PATCH para correcciones. Durante 0.x la API sigue
-en desarrollo; documentar cualquier incompatibilidad y las migraciones.
+Usamos versiones tipo SemVer: MAJOR para incompatibilidades de contratos estables, MINOR para funciones nuevas compatibles y PATCH para correcciones. Durante `0.x`, el proyecto todavía está en desarrollo. La siguiente entrega funcional prevista será `v0.2.0` cuando cumpla los objetivos de [ROADMAP](ROADMAP.md).
 
-1. Revisar privacidad del diff y ejecutar CI localmente (README).
-2. Actualizar `pyproject.toml`, versión FastAPI e interfaz; registrar CHANGELOG.
-3. Subir los cambios revisados y esperar CI verde en GitHub.
-4. Crear y subir la etiqueta anotada correspondiente, por ejemplo:
+## Flujo de trabajo de cambios
+
+1. Crear una rama desde `main`, implementar cambios y ejecutar las pruebas documentadas en [README](../README.md).
+2. Abrir un Pull Request hacia `main`, revisar el diff (en particular privacidad/licencias) y comprobar el resultado de GitHub Actions.
+3. Integrar el PR cuando esté listo. **Esto no crea automáticamente una nueva release**.
+4. Para una versión nueva, actualizar número de versión de proyecto/interfaz/API y `CHANGELOG.md` según corresponda, con un commit específico.
+5. Una vez en `main`, crear y subir una **etiqueta anotada nueva** (sin reutilizar las existentes):
 
 ```bash
-git tag -a v0.1.99 -m "Opt. Poke 0.1.99"
-git push origin v0.1.99
+git switch main
+git pull --ff-only
+git tag -a v0.2.0 -m "Opt. Poke 0.2.0"
+git push origin v0.2.0
 ```
 
-5. El workflow vuelve a ejecutar CI, valida versión/tag/changelog y crea una
-   **release en borrador** con código versionado y SHA256SUMS. Revisar notas y
-   adjuntos antes de publicarla desde GitHub Releases.
+6. El workflow de release valida el tag, genera el paquete y checksum y crea una release en borrador. Revisar los adjuntos y las notas antes de publicarla.
 
-No mover etiquetas publicadas: crear una nueva versión para corregir errores.
-No incluir bases de datos, exportaciones, Excel, cachés, sprites ni capturas con
-progreso. `git archive` solo empaqueta archivos versionados; CI aplica además
-una lista de exclusiones. Una revisión manual del contenido sigue siendo necesaria.
+No incluir SQLite, Excel, respaldos, cachés de sprites ni archivos personales en commits o distribuciones. Comprobar también las capturas. `git archive` solo empaqueta archivos versionados; los workflows tienen exclusiones adicionales, pero **la revisión humana sigue siendo necesaria**.
 
-Para activar: GitHub → Settings → Actions → General debe permitir GitHub Actions.
-El job de release declara `contents: write`; no necesita un token personal.
-La ejecución real en GitHub solo se verifica después del primer push autorizado.
+Las correcciones de documentación/auditoría que no requieren modificar el producto pueden entrar por PR sin mover la etiqueta v0.1.99 ni publicar una nueva release.
