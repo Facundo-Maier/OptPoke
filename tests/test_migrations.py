@@ -21,5 +21,8 @@ def test_legacy_goal_migration_preserves_data(local_data):
     with connect() as db:
         columns={row['name'] for row in db.execute("PRAGMA table_info(goals)")}
         assert 'ot_exception' in columns
+        assert 'pending_evolution' in columns
+        assert db.execute('SELECT SUM(pending_evolution) FROM goals').fetchone()[0] == 0
         goal=db.execute("SELECT in_home,ot_exception FROM goals WHERE form_key='bulbasaur' AND shiny=1").fetchone()
         assert (goal['in_home'],goal['ot_exception'])==(1,0)
+

@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS goals (
     obtainability TEXT NOT NULL DEFAULT 'unverified'
         CHECK (obtainability IN ('unverified','obtainable','locked')),
     ot_exception INTEGER NOT NULL DEFAULT 0 CHECK (ot_exception IN (0,1)),
+    pending_evolution INTEGER NOT NULL DEFAULT 0 CHECK (pending_evolution IN (0,1)),
     UNIQUE(form_key, shiny)
 );
 CREATE TABLE IF NOT EXISTS bank_game_status (
@@ -167,6 +168,9 @@ def initialize() -> None:
     with connect() as db:
         db.executescript(SCHEMA)
         migrate_goals_ot(db)
+        fields = {row["name"] for row in db.execute("PRAGMA table_info(goals)")}
+        if "pending_evolution" not in fields:
+            db.execute("ALTER TABLE goals ADD COLUMN pending_evolution INTEGER NOT NULL DEFAULT 0 CHECK (pending_evolution IN (0,1))")
         db.executemany(
             """INSERT OR IGNORE INTO pokemon_forms
                (form_key, dex_number, species, form_name, source_form, source_variant)
@@ -180,3 +184,4 @@ def initialize() -> None:
         )
         db.executemany("INSERT OR IGNORE INTO games(name) VALUES (?)", [(g,) for g in GAMES])
         seed_locked_shinies(db)
+

@@ -28,8 +28,8 @@ def _normalize(text: str | None) -> str:
 
 def _status(value: str | None) -> str | None:
     value = str(value or "").strip().upper()
-    if value == "NOT":
-        return "NOT"
+    if value in {"NOT", "EVO"}:
+        return value
     if value in {"0", "0.0"}:
         return "0"
     if value in {"1", "1.0"}:
@@ -111,12 +111,8 @@ def build_austin_plan(content: bytes, mode: str = "merge", source: str | None = 
                 continue  # generation separators are not Pokémon
             status = _status(row["J"])
             if status is None:
-                if row["J"].strip().upper() == "EVO":
-                    stats["evo_unresolved"] += 1
-                    problems.append(f"{sheet}: EVO sin interpretar, no se modifica: {row.get('H', '?')} / {row.get('L') or 'Forma base'}")
-                else:
-                    stats["other_status"] += 1
-                    problems.append(f"{sheet}: valor de estado desconocido para {row.get('H', '?')}: {row['J'][:25]}")
+                stats["other_status"] += 1
+                problems.append(f"{sheet}: valor de estado desconocido para {row.get('H', '?')}: {row['J'][:25]}")
                 continue
             key = _lookup_key(row, forms)
             if not key or (key, shiny) not in goals:
@@ -132,7 +128,7 @@ def build_austin_plan(content: bytes, mode: str = "merge", source: str | None = 
             goal = goals[identity]
             stats["matched"] += 1
             stats["shiny" if shiny else "normal"] += 1
-            stats[{"0": "obtained", "1": "pending", "NOT": "not_ot"}[status]] += 1
+            stats[{"0": "obtained", "1": "pending", "NOT": "not_ot", "EVO": "pending_evolution"}[status]] += 1
             updates = {}
             if status == "0":
                 if goal["in_home"] == 0:
@@ -144,6 +140,18 @@ def build_austin_plan(content: bytes, mode: str = "merge", source: str | None = 
             elif status == "NOT" and not goal["ot_exception"]:
                 # NOT is an OT exception, NOT a synonym for obtained or pending.
                 updates["ot_exception"] = 1
+            # EVO belongs to the target row (e.g. Alakazam), never its precursor.
+            # Merge preserves existing HOME counts; replace explicitly trusts Excel.
+            if status == "EVO" and mode == "replace" and goal["in_home"]:
+                updates["in_home"] = 0
+            home = updates.get("in_home", goal["in_home"])
+            evolution = goal["pending_evolution"]
+            if status == "EVO" and home < goal["target"]:
+                evolution = 1
+            elif home >= goal["target"] or (mode == "replace" and status in {"0", "1"}):
+                evolution = 0
+            if evolution != goal["pending_evolution"]:
+                updates["pending_evolution"] = evolution
             if updates:
                 stats["changed"] += 1
                 actions.append({"goal_id": goal["id"], "name": goal["species"] if "species" in goal else forms[key]["species"],
@@ -169,3 +177,4 @@ def apply_austin_plan(plan: dict) -> dict:
             db.execute("UPDATE goals SET " + ", ".join(f"{column}=?" for column in values)
                        + " WHERE id=?", [*values.values(), change["goal_id"]])
     return {"applied": len(plan["changes"]), "counts": plan["counts"], "warnings_total": plan["warnings_total"]}
+

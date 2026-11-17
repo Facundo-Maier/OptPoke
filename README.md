@@ -42,7 +42,7 @@ en una sesión que se vaya a mostrar a otras personas.
 ## Progreso y actualización
 
 Importación XLSX desde Configuración, con vista previa y confirmación separada
-para Shiny y Living. `NOT` indica OT ajeno, no captura; `EVO` se advierte y omite.
+para Shiny y Living. `NOT` indica OT ajeno, no captura; `EVO` marca «Por evolucionar» en la fila del objetivo (Alakazam si tenés Kadabra). No suma HOME: combinar conserva cantidades existentes; reemplazar pone HOME en cero para EVO. La marca puede editarse y filtrarse, y se retira al completar el objetivo.
 La exportación JSON permite respaldar progreso; restaurar reemplaza los datos.
 Guardá los respaldos y Excel fuera del repositorio.
 
@@ -84,3 +84,4 @@ No hay bundle frontend que compilar: HTML, CSS y JS se sirven directamente.
 - [Atribuciones y condiciones de terceros](THIRD_PARTY_NOTICES.md).
 
 Las distribuciones no incluyen bases personales, respaldos, Excel ni sprites.
+

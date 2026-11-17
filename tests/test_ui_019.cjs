@@ -21,7 +21,7 @@ test('Austin import is always previewed and NOT never maps to HOME in UI',()=>{
 });
 
 test('page selector displays first and last filtered record numbers',()=>{
-  assert.match(js,/const first=i\*state\.limit\+1, last=Math\.min/);
+  assert.match(js,/const first=data\.total\?i\*state\.limit\+1:0, last=Math\.min/);
   assert.match(js,/nf\.format\(first\).*nf\.format\(last\)/);
 });
 test('import allows separate Shiny and Living files with distinct confirmation controls',()=>{
@@ -29,5 +29,6 @@ test('import allows separate Shiny and Living files with distinct confirmation c
   assert.match(js,/id="austin-normal-file"/);
   assert.match(js,/source:'shiny'/);
   assert.match(js,/source:'normal'/);
-  assert.match(js,/c\.evo_unresolved/);
+  assert.match(js,/c\.pending_evolution/);
 });
+

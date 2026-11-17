@@ -80,8 +80,8 @@ async function renderDex(){
   const isShiny=state.page==='shiny';
   app.innerHTML=`<div class="dex-sticky-header">`+dexHeader(result,isShiny)+
     `<div class="dex-controls"><div class="search-wrap"><svg class="dex-search-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input class="control" id="dex-search" aria-label="Buscar Pokémon" placeholder="Pokémon, forma o número..." value="${html(state.search)}"></div>
-       <select id="dex-filter" aria-label="Filtrar por estado" class="control select"><option value="all">Todos</option><option value="missing">Pendientes</option><option value="done">En HOME</option><option value="locked">Con candado</option><option value="ot_exception">OT ajeno</option></select>
-       <select id="dex-sort" aria-label="Ordenar Pokémon" class="control select"><option value="dex">Nº Pokédex</option><option value="name">Nombre A–Z</option></select></div></div>
+       <select id="dex-filter" aria-label="Filtrar por estado" class="control select"><option value="all">Todos</option><option value="missing">Pendientes</option><option value="done">En HOME</option><option value="locked">Con candado</option><option value="ot_exception">OT ajeno</option><option value="pending_evolution">Por evolucionar</option></select>
+       <select id="dex-sort" aria-label="Ordenar Pokémon" class="control select"><option value="dex">Nº Pokédex</option><option value="name">Nombre A–Z</option></select><nav id="dex-pagination" class="pagination" aria-label="Páginas de la Pokédex"></nav></div></div>
      <div class="pokedex-shell"><aside id="dex-spotlight" class="dex-spotlight" aria-label="Vista del Pokémon seleccionado"><div id="dex-spotlight-content" class="dex-spotlight-inner"><div class="dex-spotlight-empty">Elegí un Pokémon del listado</div></div></aside>
      <section class="dex-index" aria-label="Índice de la Pokédex"><div class="dex-index-title"><span>Índice ${isShiny?'shiny':'normal'}</span><span class="dex-index-hint">Seleccioná una especie o cambiá su estado directamente</span></div>
      <div id="dex-container"></div></section></div>
@@ -117,23 +117,28 @@ function scrollDexToList(){
 async function loadDexList(){
   const page=state.page;
   const seq=++state.dexRequestSeq;
+  document.querySelectorAll('#dex-pagination button, #dex-pagination select').forEach(el=>el.disabled=true);
   const args=new URLSearchParams({kind:page,search:state.search,status:state.status,sort:state.sort,offset:state.offset,limit:state.limit});
   const data=await request('/api/goals?'+args);
   if(page!==state.page || seq!==state.dexRequestSeq)return;
   const container=$('#dex-container');if(!container)return;
-  if(!data.items.length){container.innerHTML=`<div class="dex-no-results">No se encontraron Pokémon para ese filtro.</div>`;renderDexSpotlight(null);return;}
-  const selected=data.items.find(x=>x.id===state.selectedGoalId)||data.items[0];
-  state.selectedGoalId=selected.id;
-  const rows=window.OptPokeDex.renderRows(data.items,possibleSprite,state.selectedGoalId);
+  if(state.offset>0 && state.offset>=data.total){state.offset=Math.max(0,(Math.ceil(data.total/state.limit)-1)*state.limit);return loadDexList();}
   const pageNumber=Math.floor(state.offset/state.limit)+1;
-  const pageCount=Math.ceil(data.total/state.limit);
+  const pageCount=Math.max(1,Math.ceil(data.total/state.limit));
   // The range refers to entries in the *currently filtered and sorted list*,
   // not National Dex numbers (forms share Dex numbers).
   const pageOptions=Array.from({length:pageCount},(_,i)=>{
-    const first=i*state.limit+1, last=Math.min((i+1)*state.limit,data.total);
+    const first=data.total?i*state.limit+1:0, last=Math.min((i+1)*state.limit,data.total);
     return `<option value="${i+1}" ${i+1===pageNumber?'selected':''}>${i+1} · ${nf.format(first)}–${nf.format(last)}</option>`;
   }).join('');
-  container.innerHTML=`${rows}<div class="pagination"><button id="prev-page" class="btn btn-small" ${state.offset===0?'disabled':''}>← Anterior</button><label class="dex-page-picker">${nf.format(data.total)} resultados · Página <select id="dex-jump-page" aria-label="Ir a la página y rango de resultados" class="dex-page-select">${pageOptions}</select> / ${pageCount}</label><button id="next-page" class="btn btn-small" ${state.offset+state.limit>=data.total?'disabled':''}>Siguiente →</button></div>`;
+  $('#dex-pagination').innerHTML=`<button id="prev-page" class="btn btn-small" ${state.offset===0?'disabled':''}>← Anterior</button><label class="dex-page-picker">${nf.format(data.total)} · Página <select id="dex-jump-page" aria-label="Ir a la página y rango de resultados" class="dex-page-select">${pageOptions}</select> / ${pageCount}</label><button id="next-page" class="btn btn-small" ${state.offset+state.limit>=data.total?'disabled':''}>Siguiente →</button>`;
+  $('#prev-page').addEventListener('click',()=>{state.offset=Math.max(0,state.offset-state.limit);loadDexList();scrollDexToList();});
+  $('#next-page').addEventListener('click',()=>{state.offset+=state.limit;loadDexList();scrollDexToList();});
+  $('#dex-jump-page').addEventListener('change',e=>{state.offset=(Number(e.target.value)-1)*state.limit;loadDexList();scrollDexToList();});
+  if(!data.items.length){container.innerHTML=`<div class="dex-no-results">No se encontraron Pokémon para ese filtro.</div>`;renderDexSpotlight(null);return;}
+  const selected=data.items.find(x=>x.id===state.selectedGoalId)||data.items[0];
+  state.selectedGoalId=selected.id;
+  container.innerHTML=window.OptPokeDex.renderRows(data.items,possibleSprite,state.selectedGoalId);
   const byId=new Map(data.items.map(item=>[item.id,item]));
   const byFormKey=new Map(data.items.map(item=>[item.form_key,item]));
   container.querySelectorAll('img[data-sprite-key]').forEach(image=>{
@@ -172,21 +177,20 @@ async function loadDexList(){
     }catch(error){toast(error.message);btn.disabled=false}
   }));
   renderDexSpotlight(selected);
-  $('#prev-page').addEventListener('click',()=>{state.offset=Math.max(0,state.offset-state.limit);loadDexList();scrollDexToList();});
-  $('#next-page').addEventListener('click',()=>{state.offset+=state.limit;loadDexList();scrollDexToList();});
-  $('#dex-jump-page').addEventListener('change',e=>{state.offset=(Number(e.target.value)-1)*state.limit;loadDexList();scrollDexToList();});
+
 }
 function openGoal(goal){
   modal(`${goal.species}${goal.form_name?' · '+goal.form_name:''}`,`<p class="description" style="margin-bottom:22px">#${String(goal.dex_number).padStart(4,'0')} · ${goal.shiny?'Shiny':'Normal'}. Un objetivo se completa cuando los ejemplares llegan a HOME.</p>
   <form id="goal-form"><div class="form-grid"><div class="field"><label for="g-target">Ejemplares objetivo</label><input id="g-target" class="control" type="number" min="1" max="999" value="${goal.target}" required></div>
   <div class="field"><label for="g-home">Ejemplares en HOME</label><input id="g-home" class="control" type="number" min="0" max="999" value="${goal.in_home}" required></div>
   <div class="field full"><label for="g-lock">Disponibilidad de shiny / forma</label><select id="g-lock" class="control"><option value="unverified">Sin verificar</option><option value="obtainable">Obtenible</option><option value="locked">🔒 Bloqueado actualmente</option></select></div></div>
+  <label class="dex-ot-field"><input type="checkbox" id="g-evo" ${goal.pending_evolution?'checked':''}><span><strong>Por evolucionar (EVO)</strong><small>Tengo un ejemplar previo para obtener esta evolución. No suma ejemplares en HOME; se retira al completar el objetivo.</small></span></label>
   <label class="dex-ot-field"><input type="checkbox" id="g-ot" ${goal.ot_exception?'checked':''}><span><strong>Solo obtenible sin mi OT</strong><small>Marca independiente del candado. Se aplica a esta forma, shiny o normal, por separado.</small></span></label>
   <p class="note">El candado es editable. La marca OT se gestiona manualmente; no se asignan excepciones automáticamente.</p><div class="form-actions"><button type="button" class="btn" id="cancel-goal">Cancelar</button><button type="submit" class="btn btn-primary">Guardar cambios</button></div></form>`);
   $('#g-lock').value=goal.obtainability;
   $('#cancel-goal').addEventListener('click',closeModal);
   $('#goal-form').addEventListener('submit',async e=>{
-    e.preventDefault();try{await patch('/api/goals/'+goal.id,{target:Number($('#g-target').value),in_home:Number($('#g-home').value),obtainability:$('#g-lock').value,ot_exception:$('#g-ot').checked});closeModal();toast('Objetivo guardado');await renderDex();}
+    e.preventDefault();try{await patch('/api/goals/'+goal.id,{target:Number($('#g-target').value),in_home:Number($('#g-home').value),obtainability:$('#g-lock').value,ot_exception:$('#g-ot').checked,pending_evolution:$('#g-evo').checked});closeModal();toast('Objetivo guardado');await renderDex();}
     catch(error){toast(error.message)}
   });
 }
@@ -316,7 +320,7 @@ function setupAustinImport(){
         const changes=data.changes.map(x=>`<li>${html(x.name)} · ${html(x.form)}: ${x.source==='NOT'?'Marcar OT ajeno':`${x.before_home} → ${x.after_home} en HOME`}</li>`).join('');
         conf.results.innerHTML=`<div class="austin-summary"><strong>${html(conf.label)} · ${nf.format(c.matched||0)} Pokémon reconocidos</strong>
           <p>${nf.format(c.obtained||0)} con 0 (obtenidos) · ${nf.format(c.pending||0)} con 1 (pendientes) · ${nf.format(c.not_ot||0)} con NOT (OT ajeno)</p>
-          ${c.evo_unresolved?`<p class="austin-warning">${nf.format(c.evo_unresolved)} entradas EVO sin interpretar: no se cambiarán.</p>`:''}
+          ${c.pending_evolution?`<p class="austin-warning">${nf.format(c.pending_evolution)} objetivos por evolucionar (EVO); no suman ejemplares en HOME.</p>`:''}
           <p><strong>${nf.format(c.changed||0)} cambios</strong> · ${nf.format(c.unchanged||0)} sin cambios · ${nf.format(data.warnings_total||0)} advertencias</p></div>
           ${changes?`<details class="austin-details"><summary>Ver ejemplos de cambios (máximo 30)</summary><ul>${changes}</ul></details>`:''}
           ${data.warnings_total?`<details class="austin-details"><summary>Ver advertencias</summary><ul>${data.warnings.map(x=>`<li>${html(x)}</li>`).join('')}</ul></details>`:''}
@@ -358,7 +362,7 @@ async function renderSettings(){
      <div class="austin-source"><h3>Living Dex</h3><p class="note">Excel de <strong>Home Living Dex Organizer</strong>, hoja <code>LivingFormLITE</code>.</p>
        <div class="austin-import-actions"><input id="austin-normal-file" class="control" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-label="Seleccionar Excel Living de AustinJohn">
        <button id="austin-normal-preview" class="btn btn-primary" type="button">Revisar Living</button></div><div id="austin-normal-results" role="status" aria-live="polite"></div></div>
-     <p class="note"><strong>Estados:</strong> 0 = obtenido, 1 = pendiente, <strong>NOT = No OT</strong> (sin asumir captura). <strong>EVO</strong> se muestra como advertencia y no modifica ningún objetivo. Se ignoran los separadores «Gen». Los archivos originales permanecen intactos.</p>
+     <p class="note"><strong>Estados:</strong> 0 = obtenido, 1 = pendiente, <strong>NOT = No OT</strong> (sin asumir captura). <strong>EVO</strong> marca la evolución objetivo como «Por evolucionar» (ej.: Alakazam si tenés Kadabra). Combinar conserva HOME; reemplazar pone HOME en cero para EVO. Se ignoran los separadores «Gen». Los archivos originales permanecen intactos.</p>
      </div>
      <div class="panel"><h2>Sprites almacenados localmente</h2>
      <p class="description">Las imágenes se descargan únicamente al mostrarlas por primera vez. Después se sirven desde tu computadora, incluso tras reiniciar la aplicación; no se guardan en SQLite ni en los respaldos JSON.</p>
@@ -394,3 +398,4 @@ request('/api/runtime').then(config => {
     document.title = 'DEMO · Opt. Poke';
   }
 }).catch(() => {});
+

@@ -1,5 +1,8 @@
 ## Sin publicar
 
+- EVO importa la evolución pendiente en la fila objetivo sin sumar HOME. Incluye edición, filtro, migración aditiva y compatibilidad con respaldos anteriores.
+- Paginación en la cabecera persistente junto a un buscador compacto; referencias de assets actualizadas para renovar la caché del navegador.
+
 - Corregidas cuatro rutas de sprites detectadas por la auditoría local: Deerling (Fall), Sawsbuck (Fall), Dudunsparce (3 Segment) shiny y Pikachu World Cap normal.
 - Alias ajustados a los nombres reales de Showdown (`autumn`, `threesegment`) y respaldo HOME exacto para World Cap. Se conserva la prohibición de usar un render normal en la Shiny Dex.
 - Alias adicionales para Unown A, Oricorio Baile y Minior Red Core (forma base en Showdown), correspondientes a 5 registros con 404 y uno aún sin comprobar de la segunda auditoría.
@@ -152,3 +155,4 @@
 - Importación de progreso real desde Google Sheets.
 - Sprites alternativos por forma y comparador verificado de métodos.
 - Reconciliación de tareas Bank con objetivos de colección.
+

@@ -22,7 +22,8 @@
 
 ## v0.2 — Progreso y Pokémon Bank
 
-- [ ] Aclarar el valor `EVO` en AustinJohn; actualmente se omite en las importaciones.
+- [x] EVO: evolución objetivo pendiente, con importación, edición y filtro; independiente de HOME.
+- [x] Paginación completa en la cabecera fija junto al buscador compacto.
 - [ ] Vincular cada tarea de Bank a la forma correspondiente de la Pokédex con coincidencias verificadas.
 - [ ] Mantener un único progreso en HOME, sin contar dos veces ejemplares o transferencias.
 - [ ] Mejorar el seguimiento de tareas y transferencias por juego.
@@ -45,3 +46,4 @@
 - [x] Documentación, licencia MIT del código, atribución de fuentes y demo ficticia.
 - [x] GitHub Actions y release pública v0.1.99.
 - [ ] Revisar licencias de nuevos recursos y que nunca se publiquen Excel, cachés, capturas con progreso ni bases privadas.
+

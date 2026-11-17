@@ -12,6 +12,7 @@
     const done = item.in_home >= item.target;
     if (item.obtainability === 'locked') return 'Con candado';
     if (done) return 'En HOME';
+    if (item.pending_evolution) return 'Por evolucionar';
     if (item.in_home > 0) return 'Parcial';
     return 'Pendiente';
   }
@@ -77,3 +78,4 @@
   root.OptPokeDex = {renderRows, labelFor, homeControl, otControl};
   if (typeof module !== 'undefined' && module.exports) module.exports = {renderRows, labelFor, homeControl, otControl};
 })(typeof window !== 'undefined' ? window : globalThis);
+

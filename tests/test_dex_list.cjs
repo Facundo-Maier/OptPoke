@@ -75,3 +75,10 @@ test('OT exception is a distinct interactive control regardless of HOME or locke
   assert.match(markup,/class="dex-ot-cell"/);
   assert.match(markup,/aria-pressed="true"/);
 });
+
+
+test('EVO shows pending target evolution and completion takes precedence',()=>{
+  const {labelFor}=require('../static/dex-list.js');
+  assert.equal(labelFor({in_home:0,target:1,pending_evolution:1}),'Por evolucionar');
+  assert.equal(labelFor({in_home:1,target:1,pending_evolution:1}),'En HOME');
+});

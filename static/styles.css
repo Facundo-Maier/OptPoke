@@ -397,3 +397,14 @@ button.dex-status:hover{background:#38583c;border-color:#729457}
 .austin-source .austin-import-actions{margin:10px 0}
 .austin-warning{color:#f3c779!important}
 @media(max-width:650px){.dex-page-select{min-width:125px;max-width:170px}}
+
+
+/* Pagination stays beside the compact search, inside the sticky header. */
+.dex-controls .search-wrap{flex:0 1 210px;min-width:170px;max-width:240px}
+.dex-controls .select{min-width:0;max-width:155px}
+.dex-controls .pagination{margin:0 0 0 auto;gap:6px;flex-wrap:wrap;font-size:11px}
+.dex-controls .dex-page-picker{gap:4px}
+@media(max-width:650px){
+  .dex-controls .search-wrap{flex:1 1 180px;max-width:none}
+  .dex-controls .pagination{flex-basis:100%;justify-content:space-between;margin:0}
+}
