@@ -67,3 +67,23 @@ Para resolver una ausencia:
 5. Si una fuente antes devolvió 404 y ahora existe, invalidá solo el marcador de ausencia correspondiente, no toda la caché.
 
 No es necesario descargar las 2.498 entradas de la Pokédex: primero auditamos lo que ya existe y hacemos comprobaciones puntuales. La auditoría completa depende de la caché real de tu instalación WSL; **no puede inferirse únicamente del repositorio**.
+
+## Casos resueltos a partir del informe del 16/11/2026
+
+- Shiny Deerling y Sawsbuck, forma `Fall`: Showdown utiliza `autumn`.
+- Shiny Dudunsparce, `3 Segment`: Showdown utiliza `threesegment`.
+- Living Pikachu, `World Cap`: el render exacto se encuentra en `sprites/home/pikachu-world.png`.
+
+Estos cuatro cambios usan rutas nuevas: los registros 404 de rutas anteriores no necesitan borrarse. Luego de actualizar la rama, visitar los Pokémon o ejecutar la auditoría opcional con un límite pequeño para llenar la caché; finalmente verificar visualmente las imágenes. Los demás 190 casos del informe inicial siguen **sin comprobar**, no necesariamente sin imagen.
+
+### Segunda auditoría (16/11/2026)
+
+Tras navegar las Pokédex, la caché pasó de **444 a 626** objetivos de formas especiales con imagen; los pendientes bajaron de 194 a 12 (1 sin comprobar, 11 sin imagen en las fuentes configuradas). Se detectaron alias adicionales que requieren usar el nombre del sprite de la forma base:
+
+- Unown letra `a` shiny → `unown.png` (único sin comprobar, además de un 404 de una fuente).
+- Oricorio `Baile Style` (normal/shiny) → `oricorio.png`.
+- Minior `Red Core` (normal/shiny) → `minior.png`.
+
+Las demás entradas con 404 del segundo informe corresponden a Deerling, Sawsbuck, Dudunsparce y Pikachu World Cap (ya incluidos en la misma corrección). Los resultados son **por colección**, por lo que una misma forma puede contarse dos veces.
+
+Después de fusionar el PR, recorrer las variantes afectadas para que se cacheen las nuevas rutas y repetir la auditoría. No eliminar los marcadores 404 de las rutas antiguas; son distintos archivos. Que un sprite exista sigue sin sustituir la revisión visual de su variante correcta.

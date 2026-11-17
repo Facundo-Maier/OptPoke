@@ -24,7 +24,7 @@ test('regional shiny never falls back to the incorrect default form', () => {
 test('special forms map to Showdown filenames rather than the base species', () => {
   assert.equal(showdownForm('Unown','!'),'unown-exclamation');
   assert.equal(showdownForm('Unown','?'),'unown-question');
-  assert.equal(showdownForm('Unown','a'),'unown-a');
+  assert.equal(showdownForm('Unown','a'),'unown');
   assert.equal(showdownForm('Vivillon','Poké Ball'),'vivillon-pokeball');
   assert.equal(showdownForm('Tauros','Paldean Blaze Breed'),'tauros-paldeablaze');
   assert.equal(showdownForm('Pikachu','Hoenn Cap'),'pikachu-hoenn');
@@ -72,4 +72,50 @@ test('browser sprite references go through the local disk cache', () => {
   const proxied = localImageURL(url);
   assert.equal(proxied, '/api/sprites/image?url='+encodeURIComponent(url));
   assert(!proxied.startsWith('https://'));
+});
+
+test('Fall season uses an exact Autumn shiny sprite for Deerling and Sawsbuck', () => {
+  for (const [dex, species] of [[585, 'Deerling'], [586, 'Sawsbuck']]) {
+    const sources = spriteSources(pokemon(dex, species, 'Fall'), true);
+    assert.match(sources[0].url, new RegExp('dex-shiny/' + species.toLowerCase() + '-autumn\\.png$'));
+    assert(sources.every(s => !s.url.endsWith('/' + species.toLowerCase() + '.png')));
+  }
+});
+
+test('Dudunsparce three segments use the Showdown threesegment filename', () => {
+  const sources = spriteSources(pokemon(982, 'Dudunsparce', '3 Segment'), true);
+  assert.match(sources[0].url, /dex-shiny\/dudunsparce-threesegment\.png$/);
+  assert(sources.every(s => !s.url.endsWith('/dudunsparce.png')));
+});
+
+test('World Cap Pikachu has the exact HOME render in Living, never shiny fallback', () => {
+  const normal = spriteSources(pokemon(25, 'Pikachu', 'World Cap'), false);
+  const shiny = spriteSources(pokemon(25, 'Pikachu', 'World Cap'), true);
+  assert(normal.some(s => s.url.endsWith('/home/pikachu-world.png') && s.kind === 'render'));
+  assert(shiny.every(s => !s.url.endsWith('/home/pikachu-world.png')));
+  assert(normal.every(s => !s.url.endsWith('/pikachu.png')));
+});
+
+test('Default visual variants use exact base filenames in both collections', () => {
+  const cases = [
+    [201, 'Unown', 'a', 'unown'],
+    [741, 'Oricorio', 'Baile Style', 'oricorio'],
+    [774, 'Minior', 'Red Core', 'minior'],
+  ];
+  for (const [dex, species, form, file] of cases) {
+    for (const shiny of [true,false]) {
+      const sources = spriteSources(pokemon(dex, species, form), shiny);
+      const dir = shiny ? 'dex-shiny' : 'dex';
+      assert.match(sources[0].url, new RegExp('/' + dir + '/' + file + '\\.png$'));
+      assert(sources.every(s => !s.url.endsWith('/' + file + '-a.png')));
+      assert(sources.every(s => !s.url.endsWith('/' + file + '-baile.png')));
+      assert(sources.every(s => !s.url.endsWith('/' + file + '-red.png')));
+    }
+  }
+});
+
+test('Alternate variants remain distinct from default Unown, Oricorio and Minior', () => {
+  assert.equal(showdownForm('Unown', 'b'), 'unown-b');
+  assert.equal(showdownForm('Oricorio', 'Sensu Style'), 'oricorio-sensu');
+  assert.equal(showdownForm('Minior', 'Blue Core'), 'minior-blue');
 });
