@@ -12,7 +12,6 @@
     const done = item.in_home >= item.target;
     if (item.obtainability === 'locked') return 'Con candado';
     if (done) return 'En HOME';
-    if (item.pending_evolution) return 'Por evolucionar';
     if (item.in_home > 0) return 'Parcial';
     return 'Pendiente';
   }
@@ -61,7 +60,7 @@
           aria-label="Seleccionar ${name}, ${form}, número ${number}">
           <span class="dex-number">${number}</span>
           <span class="dex-sprite">${spriteMarkup(item)}</span>
-          <span class="dex-info"><span class="dex-pokemon" title="${name}">${name}</span><span class="dex-form" title="${form}">${form}</span></span>
+          <span class="dex-info"><span class="dex-pokemon" title="${name}">${name}</span><span class="dex-form" title="${form}">${form}</span>${item.pending_evolution && !done?'<span class="dex-evo-mark">Por evolucionar</span>':''}</span>
         </button>
         <span class="dex-state-cell">${homeControl(item)}</span>
         <span class="dex-ot-cell">${otControl(item)}</span>

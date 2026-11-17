@@ -69,7 +69,7 @@ function renderDexSpotlight(goal){
     <div class="dex-preview-stage"><div class="dex-preview-image">${possibleSprite(goal)}</div></div>
     <div class="dex-preview-name">${html(goal.species)}</div>
     <div class="dex-preview-form">${html(goal.form_name||'Forma base')}</div>
-    <div class="dex-preview-details"><span>Estado</span><strong>${label==='Con candado'?'🔒 ':''}${label}</strong><span>OT</span><strong>${goal.ot_exception?'OT ajeno':'Sin marca'}</strong><span>En HOME</span><strong>${goal.in_home} / ${goal.target}</strong></div>
+    <div class="dex-preview-details"><span>Estado</span><strong>${label==='Con candado'?'🔒 ':''}${label}</strong>${goal.pending_evolution && goal.in_home<goal.target?'<span>Evolución</span><strong>Por evolucionar</strong>':''}<span>OT</span><strong>${goal.ot_exception?'OT ajeno':'Sin marca'}</strong><span>En HOME</span><strong>${goal.in_home} / ${goal.target}</strong></div>
     <button class="dex-preview-edit" type="button" id="dex-preview-edit">Editar objetivo <span aria-hidden="true">↗</span></button>`;
   $('#dex-preview-edit').addEventListener('click',()=>openGoal(goal));
   const previewImage=pane.querySelector('img[data-sprite-key]');
