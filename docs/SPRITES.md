@@ -87,3 +87,7 @@ Tras navegar las Pokédex, la caché pasó de **444 a 626** objetivos de formas 
 Las demás entradas con 404 del segundo informe corresponden a Deerling, Sawsbuck, Dudunsparce y Pikachu World Cap (ya incluidos en la misma corrección). Los resultados son **por colección**, por lo que una misma forma puede contarse dos veces.
 
 Después de fusionar el PR, recorrer las variantes afectadas para que se cacheen las nuevas rutas y repetir la auditoría. No eliminar los marcadores 404 de las rutas antiguas; son distintos archivos. Que un sprite exista sigue sin sustituir la revisión visual de su variante correcta.
+
+## Cierre de revisión inicial (17/11/2026)
+
+En la última auditoría compartida se registraron **638 objetivos especiales**, con **631 imágenes en caché**, **7 sin comprobar automáticamente** y **0 con todas sus fuentes agotadas**. Las comprobaciones visuales pendientes se revisaron satisfactoriamente según el usuario. Se considera cerrada la auditoría inicial para iniciar la v0.2, sin interpretar «en caché» como prueba automática de la corrección de los 638 colores o formas.

@@ -1,5 +1,15 @@
 ## Sin publicar
 
+### Preparación de v0.2: Bank como TODO list editable
+
+- Crear, editar o eliminar tareas Bank desde la interfaz; editar juego, Pokémon, forma, condición shiny/OT, notas y cantidades.
+- Clasificación explícita «Solo Bank» (por defecto, incluyendo importadas) o «En Shiny/Living Dex», con selector de objetivo real y vínculo reversible.
+- Migración SQLite aditiva `bank_tasks.goal_id` y compatibilidad de respaldo con versiones anteriores.
+- La asociación nunca sincroniza ni suma contadores de HOME. Pruebas sintéticas de CRUD, vínculos y migración sin publicar progreso personal.
+- Se cierra documentalmente la auditoría de sprites del 17/11 (631 en caché, 7 sin comprobar y 0 fuentes agotadas; revisión visual confirmada por el usuario).
+- Se documenta el flujo obligatorio `rama desde develop → PR a develop → pruebas → main solo para release`.
+
+
 - Importación AustinJohn: los estados 0/1/EVO del Excel actualizan HOME y EVO aunque hubiera progreso anterior. Vista previa y confirmación explican las reducciones de cantidad; se elimina el selector de modos. NOT conserva su significado independiente.
 
 - EVO importa la evolución pendiente en la fila objetivo sin sumar HOME. Incluye edición, filtro, migración aditiva y compatibilidad con respaldos anteriores.

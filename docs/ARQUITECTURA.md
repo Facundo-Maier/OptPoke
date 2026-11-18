@@ -53,6 +53,7 @@ erDiagram
 | Directorio | Responsabilidad |
 | --- | --- |
 | `app/db.py` | Esquema SQLite y catálogo inicial |
+| `app/bank_links.py` | Normalización para validar vínculos explícitos Bank → objetivo de Pokédex |
 | `app/sprite_cache.py` | Descarga autorizada bajo demanda, caché persistente, ausencias y modo offline |
 | `app/main.py` | API HTTP, validaciones y persistencia |
 | `app/math_utils.py` | Fórmulas de probabilidades |
@@ -75,10 +76,14 @@ erDiagram
 
 `scripts/auditar_sprites.cjs` utiliza las mismas funciones `spriteSources()` y `pokeApiVariety()` que la interfaz, y reconstruye las rutas de caché mediante hashes SHA-256 compatibles con `app/sprite_cache.py`. No cambia el esquema SQLite ni descarga imágenes por defecto. Los informes `reportes_sprites/` se excluyen de Git. La [guía](SPRITES.md) distingue imágenes cacheadas, fuentes aún no probadas, 404 y validación visual pendiente.
 
+## Primera etapa de integración de Bank (v0.2 en desarrollo)
+
+Bank funciona como una TODO list editable mediante `GET/POST /api/bank` y `PATCH/DELETE /api/bank/{task_id}`. El campo opcional `goal_id` apunta a un objetivo de la Pokédex solo si el usuario lo selecciona explícitamente; `NULL` significa «Solo Bank», incluso para tareas importadas antiguamente. La interfaz permite buscar objetivos con `GET /api/bank/goal-options`, sin asociar automáticamente especies ni formas. `in_home` de Bank y de la Pokédex siguen independientes y no se suman. Ver [BANK_TODO.md](BANK_TODO.md).
+
 ## Decisiones futuras
 
-1. Vincular automáticamente cada tarea Bank con `form_key` y con ejemplares concretos.
-2. Definir la semántica de `EVO` en las exportaciones de AustinJohn; hasta entonces se informa y omite sin tocar el objetivo.
+1. Mantener las tareas Bank independientes salvo vínculo explícito; cualquier sincronización futura necesita primero identificar ejemplares concretos y evitar doble conteo.
+2. Conservar la semántica ya implementada de `EVO` como evolución pendiente independiente del progreso en HOME.
 3. Completar los sprites de formas que no tienen una imagen correcta y, cuando sea necesario, revisar los registros de ausencia guardados.
 4. Crear catálogo versionado de juegos, métodos, probabilidades, restricciones de OT y fuentes verificables.
 5. Añadir perfiles de partida y condiciones necesarias (Shiny Charm, cadenas, encuentros, etc.).
@@ -119,9 +124,9 @@ Solo utiliza las hojas `S-LivingFormLITE` y `LivingFormLITE`, validando forma y
 Pokédex nacional (no coordenadas). No ejecuta macros ni fórmulas. Se separan
 **previsualización** (sin escrituras) y **aplicación** (transacción SQLite).
 La aplicación requiere SHA-256 coincidente para evitar aplicar otro archivo.
-El valor `NOT` de la columna de progreso significa **No OT**; activa el indicador
-`ot_exception` y nunca modifica `in_home`. La celda 0 aporta al menos una copia,
-no implica completar objetivos con `target > 1`. El modo por defecto no borra
-progreso previamente marcado; el modo explícito de igualación puede establecer
-`in_home = 0` ante una celda 1. Se rechazan hojas sin reconocimientos suficientes
-y se muestran advertencias y diferencias antes de cualquier cambio.
+El valor `NOT` significa **No OT** y marca `ot_exception` sin determinar posesión.
+El estado `0` actualiza el objetivo a un ejemplar en HOME; `1` lo deja pendiente
+con cero y `EVO` deja cero en HOME, manteniendo una marca independiente de
+«Por evolucionar». El Excel es autoritativo para esos campos en las filas
+incluidas, pero no afecta objetivos ausentes. La previsualización y confirmación
+se mantienen; se rechazan hojas que no reconocen suficientemente el catálogo.

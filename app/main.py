@@ -176,6 +176,27 @@ async def apply_austin(request: Request, digest: str, mode: Literal["merge", "re
     return apply_austin_plan(plan)
 
 
+@app.get("/api/bank/goal-options")
+def bank_goal_options(search: str = Query("", max_length=100),
+                      shiny: bool | None = None):
+    """Candidates are shown only when the user explicitly searches the Dex."""
+    search = search.strip()
+    if len(search) < 2:
+        return {"items": []}
+    conditions = ["(f.species LIKE ? OR f.form_name LIKE ? OR CAST(f.dex_number AS TEXT) LIKE ?)"]
+    params: list = [f"%{search}%"] * 3
+    if shiny is not None:
+        conditions.append("g.shiny=?")
+        params.append(int(shiny))
+    with connect() as db:
+        items = rows(db.execute(
+            "SELECT g.id AS goal_id,g.form_key,g.shiny,f.species,f.form_name,f.dex_number "
+            "FROM goals g JOIN pokemon_forms f ON g.form_key=f.form_key "
+            "WHERE " + " AND ".join(conditions) +
+            " ORDER BY f.dex_number,f.form_key LIMIT 40", params))
+    return {"items": items}
+
+
 @app.get("/api/bank")
 def list_bank(game: str = "", search: str = "", pending: bool = True):
     conditions = ["1=1"]
@@ -188,16 +209,86 @@ def list_bank(game: str = "", search: str = "", pending: bool = True):
         params.extend([f"%{search}%"] * 3)
     if pending: conditions.append("t.in_home<t.required")
     with connect() as db:
-        items = rows(db.execute("""SELECT t.*,s.started,s.prepared
-                  FROM bank_tasks t JOIN bank_game_status s USING(game)
-                  WHERE """ + " AND ".join(conditions) + " ORDER BY t.game,t.source_row", params))
+        items = rows(db.execute(
+            """SELECT t.*,s.started,s.prepared,
+                g.form_key AS linked_form_key,
+                f.species AS linked_species,f.form_name AS linked_form_name,
+                f.dex_number AS linked_dex_number,g.shiny AS linked_shiny
+                FROM bank_tasks t JOIN bank_game_status s USING(game)
+                LEFT JOIN goals g ON g.id=t.goal_id
+                LEFT JOIN pokemon_forms f ON f.form_key=g.form_key
+                WHERE """ + " AND ".join(conditions) +
+            " ORDER BY t.game,t.source_row,t.id", params))
         statuses = rows(db.execute("SELECT * FROM bank_game_status ORDER BY game"))
     return {"items": items, "games": statuses}
 
 
+class BankTaskCreate(BaseModel):
+    game: str = Field(min_length=1, max_length=100)
+    pokemon: str = Field(min_length=1, max_length=100)
+    form_name: str | None = Field(default=None, max_length=100)
+    comments: str = Field(default="", max_length=1000)
+    shiny: bool = True
+    ot_exception: bool = False
+    required: int = Field(default=1, ge=1, le=999)
+    caught: int = Field(default=0, ge=0, le=999)
+    in_home: int = Field(default=0, ge=0, le=999)
+    goal_id: int | None = Field(default=None, ge=1)
+
+
 class BankPatch(BaseModel):
-    caught: int | None = Field(None, ge=0, le=999)
-    in_home: int | None = Field(None, ge=0, le=999)
+    game: str | None = Field(default=None, min_length=1, max_length=100)
+    pokemon: str | None = Field(default=None, min_length=1, max_length=100)
+    form_name: str | None = Field(default=None, max_length=100)
+    comments: str | None = Field(default=None, max_length=1000)
+    shiny: bool | None = None
+    ot_exception: bool | None = None
+    required: int | None = Field(default=None, ge=1, le=999)
+    caught: int | None = Field(default=None, ge=0, le=999)
+    in_home: int | None = Field(default=None, ge=0, le=999)
+    goal_id: int | None = Field(default=None, ge=1)
+
+
+def _bank_task_values(db, values: dict):
+    """Enforce consistency even when a linked task is edited later."""
+    from .bank_links import _normalized, _form
+
+    values = dict(values)
+    values["game"] = values["game"].strip()
+    values["pokemon"] = values["pokemon"].strip()
+    values["form_name"] = (values["form_name"] or "").strip() or None
+    values["comments"] = values["comments"].strip()
+    if not values["game"] or not values["pokemon"]:
+        raise HTTPException(422, "Juego y Pokémon son obligatorios")
+    if not (0 <= values["in_home"] <= values["caught"] <= values["required"]):
+        raise HTTPException(422, "Debe cumplirse: en HOME ≤ capturados ≤ requeridos")
+    values["shiny"] = int(values["shiny"])
+    values["ot_exception"] = int(values["ot_exception"])
+    if values["goal_id"] is not None:
+        goal = db.execute(
+            "SELECT g.shiny,f.species,f.form_name FROM goals g "
+            "JOIN pokemon_forms f ON f.form_key=g.form_key WHERE g.id=?",
+            (values["goal_id"],)).fetchone()
+        if goal is None:
+            raise HTTPException(422, "El objetivo de la Pokédex no existe")
+        if goal["shiny"] != values["shiny"] or _normalized(goal["species"]) != _normalized(values["pokemon"]):
+            raise HTTPException(422, "El vínculo debe ser de la misma especie y del mismo tipo shiny")
+        if values["form_name"] and _form(goal["form_name"]) != _form(values["form_name"]):
+            raise HTTPException(422, "La forma indicada no coincide con el objetivo vinculado")
+    return values
+
+
+@app.post("/api/bank", status_code=201)
+def create_bank_task(data: BankTaskCreate):
+    with connect() as db:
+        values = _bank_task_values(db, data.model_dump())
+        db.execute("INSERT OR IGNORE INTO bank_game_status(game) VALUES (?)", (values["game"],))
+        columns = list(values)
+        cur = db.execute(
+            "INSERT INTO bank_tasks(" + ",".join(columns) + ") VALUES (" +
+            ",".join("?" for _ in columns) + ")",
+            [values[col] for col in columns])
+        return dict(db.execute("SELECT * FROM bank_tasks WHERE id=?", (cur.lastrowid,)).fetchone())
 
 
 @app.patch("/api/bank/{task_id}")
@@ -205,16 +296,30 @@ def update_bank(task_id: int, patch: BankPatch):
     provided = patch.model_dump(exclude_unset=True)
     with connect() as db:
         current = db.execute("SELECT * FROM bank_tasks WHERE id=?", (task_id,)).fetchone()
-        if not current: raise HTTPException(404, "Tarea no encontrada")
-        if any(v is None for v in provided.values()): raise HTTPException(422, "Valor nulo no permitido")
-        caught = provided.get("caught", current["caught"])
-        in_home = provided.get("in_home", current["in_home"])
-        if in_home > caught or caught > current["required"]:
-            raise HTTPException(422, "Debe cumplirse: en HOME ≤ capturados ≤ requeridos")
-        if provided:
-            db.execute("UPDATE bank_tasks SET " + ", ".join(f"{col}=?" for col in provided) + " WHERE id=?",
-                       [*provided.values(), task_id])
+        if not current:
+            raise HTTPException(404, "Tarea no encontrada")
+        if not provided:
+            return dict(current)
+        if any(v is None for key, v in provided.items() if key not in {"goal_id", "form_name"}):
+            raise HTTPException(422, "Valor nulo no permitido")
+        fields = ("game", "pokemon", "form_name", "comments", "shiny", "ot_exception",
+                  "required", "caught", "in_home", "goal_id")
+        combined = {key: provided.get(key, current[key]) for key in fields}
+        normalized = _bank_task_values(db, combined)
+        db.execute("INSERT OR IGNORE INTO bank_game_status(game) VALUES (?)", (normalized["game"],))
+        db.execute("UPDATE bank_tasks SET " +
+                   ", ".join(f"{field}=?" for field in fields) + " WHERE id=?",
+                   [normalized[key] for key in fields] + [task_id])
         return dict(db.execute("SELECT * FROM bank_tasks WHERE id=?", (task_id,)).fetchone())
+
+
+@app.delete("/api/bank/{task_id}", status_code=204)
+def delete_bank_task(task_id: int):
+    with connect() as db:
+        result = db.execute("DELETE FROM bank_tasks WHERE id=?", (task_id,))
+        if result.rowcount == 0:
+            raise HTTPException(404, "Tarea no encontrada")
+    return Response(status_code=204)
 
 
 class BankGamePatch(BaseModel):
@@ -361,7 +466,7 @@ def restore_backup(payload: BackupIn):
     # Restore only trusted app-format backups; this replaces user progress.
     writable = {
         "goals": {"id", "form_key", "shiny", "target", "in_home", "obtainability", "ot_exception", "pending_evolution"},
-        "bank_tasks": {"id", "game", "pokemon", "form_name", "comments", "shiny", "ot_exception", "required", "caught", "in_home", "source_row"},
+        "bank_tasks": {"id", "game", "pokemon", "form_name", "comments", "shiny", "ot_exception", "required", "caught", "in_home", "source_row", "goal_id"},
         "bank_game_status": {"game", "started", "prepared"},
         "hunts": {"id", "pokemon", "game", "method", "probability", "seconds_per_attempt", "attempts", "status", "shiny_found", "unknown_phases", "source", "created_at"},
         "hunt_phases": {"id", "hunt_id", "at_attempt", "note"},
@@ -377,6 +482,8 @@ def restore_backup(payload: BackupIn):
             if tab == "goals":
                 for field in ("ot_exception", "pending_evolution"):
                     item.setdefault(field, 0)
+            if tab == "bank_tasks":
+                item.setdefault("goal_id", None)
             if set(item) != writable[tab]:
                 raise HTTPException(422, f"Campos inválidos en {tab}")
     try:
