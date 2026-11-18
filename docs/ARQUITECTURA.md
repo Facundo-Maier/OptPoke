@@ -124,9 +124,9 @@ Solo utiliza las hojas `S-LivingFormLITE` y `LivingFormLITE`, validando forma y
 Pokédex nacional (no coordenadas). No ejecuta macros ni fórmulas. Se separan
 **previsualización** (sin escrituras) y **aplicación** (transacción SQLite).
 La aplicación requiere SHA-256 coincidente para evitar aplicar otro archivo.
-El valor `NOT` de la columna de progreso significa **No OT**; activa el indicador
-`ot_exception` y nunca modifica `in_home`. La celda 0 aporta al menos una copia,
-no implica completar objetivos con `target > 1`. El modo por defecto no borra
-progreso previamente marcado; el modo explícito de igualación puede establecer
-`in_home = 0` ante una celda 1. Se rechazan hojas sin reconocimientos suficientes
-y se muestran advertencias y diferencias antes de cualquier cambio.
+El valor `NOT` significa **No OT** y marca `ot_exception` sin determinar posesión.
+El estado `0` actualiza el objetivo a un ejemplar en HOME; `1` lo deja pendiente
+con cero y `EVO` deja cero en HOME, manteniendo una marca independiente de
+«Por evolucionar». El Excel es autoritativo para esos campos en las filas
+incluidas, pero no afecta objetivos ausentes. La previsualización y confirmación
+se mantienen; se rechazan hojas que no reconocen suficientemente el catálogo.
