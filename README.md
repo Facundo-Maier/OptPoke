@@ -62,6 +62,12 @@ Se generan informes CSV/JSON en `reportes_sprites/` (ignorados por Git).
 `sin_comprobar` significa que todavía no se consultó una fuente, **no** que falte el sprite. Un archivo cacheado tampoco garantiza que su variante o color sea correcto.
 La [guía de auditoría](docs/SPRITES.md) explica cómo revisar las formas y cómo ejecutar comprobaciones externas opcionales y limitadas mediante el servidor local.
 
+## Flujo de ramas
+
+Los cambios se implementan en **ramas nuevas creadas desde `develop`** y se proponen mediante PR hacia `develop`, con pruebas en la propia rama. Solo se integra `develop` en `main` para una versión probada y destinada a publicación; ver [Releases](docs/RELEASING.md).
+
+La primera etapa de v0.2 añade una [previsualización de coincidencias Bank–Pokédex](docs/BANK_RECONCILIATION.md). Las sugerencias no vinculan ni sincronizan cantidades de HOME.
+
 ## Desarrollo
 
 ```bash
