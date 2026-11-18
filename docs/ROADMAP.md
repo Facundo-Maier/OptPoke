@@ -16,11 +16,14 @@
 
 - [x] Herramienta reproducible de auditoría local de sprites, sin red por defecto: `scripts/auditar_sprites.cjs`.
 - [x] Documentar estados y comprobación opcional por lotes: [SPRITES.md](SPRITES.md).
-- [ ] Ejecutar el informe en la instalación WSL real, porque la caché personal no está en GitHub.
-- [ ] Revisar manualmente las formas especiales y corregir alias/imágenes exactas con sus pruebas.
-- [ ] Registrar los casos sin fuente válida sin reemplazarlos por formas o colores incorrectos.
+- [x] Ejecutar la auditoría en WSL (17/11): 638 objetivos, 631 en caché, 7 sin comprobar y 0 con fuentes agotadas.
+- [x] Corregir los alias problemáticos y revisar visualmente los casos restantes (verificación visual satisfactoria informada por el usuario).
+- [x] Registrar el resultado y conservar los marcadores para las formas sin fuente exacta; no se fuerzan imágenes incorrectas.
 
 ## v0.2 — Progreso y Pokémon Bank
+
+- [x] Primera etapa: previsualización de coincidencias Bank ↔ objetivos (únicas, ambiguas o inexistentes), sin escribir vínculos ni modificar HOME.
+- [ ] Confirmación explícita y reversible de cada vínculo Bank → forma/objetivo.
 
 - [x] EVO: evolución objetivo pendiente, con importación, edición y filtro; independiente de HOME.
 - [x] Paginación completa en la cabecera fija junto al buscador compacto.
