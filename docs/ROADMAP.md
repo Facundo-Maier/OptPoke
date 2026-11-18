@@ -22,8 +22,10 @@
 
 ## v0.2 — Progreso y Pokémon Bank
 
-- [x] Primera etapa: previsualización de coincidencias Bank ↔ objetivos (únicas, ambiguas o inexistentes), sin escribir vínculos ni modificar HOME.
-- [ ] Confirmación explícita y reversible de cada vínculo Bank → forma/objetivo.
+- [x] Bank como TODO list editable: agregar, modificar, eliminar tareas y mantener cantidades de captura/HOME.
+- [x] Distinguir tareas «Solo Bank» de tareas asociadas explícitamente a Shiny/Living Dex, con vínculo reversible.
+- [x] Migración aditiva y respaldo compatible con tareas existentes sin vínculo.
+- [ ] Si fuera necesario, diseñar sincronización de ejemplares sin doble conteo (no se activa por asociar una tarea).
 
 - [x] EVO: evolución objetivo pendiente, con importación, edición y filtro; independiente de HOME.
 - [x] Paginación completa en la cabecera fija junto al buscador compacto.
