@@ -194,55 +194,135 @@ function openGoal(goal){
     catch(error){toast(error.message)}
   });
 }
-function bankSuggestionCell(task){
-  const proposal=state.bankPreview?.[task.id];
-  if(!proposal)return '<span class="tiny muted">Sin analizar</span>';
-  if(proposal.status==='suggested'){
-    const goal=proposal.suggestion;
-    return `<span class="tiny" title="Sugerencia sin confirmar; no sincroniza HOME">Sugerencia: #${String(goal.dex_number).padStart(4,'0')} · ${html(goal.form_name||'Forma base')}</span>`;
-  }
-  if(proposal.status==='ambiguous')
-    return '<span class="tiny muted">Varias formas · revisar</span>';
-  return '<span class="tiny muted">Sin coincidencia exacta</span>';
+
+function bankLinkLabel(task){
+  if(!task.goal_id)return '<span class="tiny muted">Solo Bank</span>';
+  const form=task.linked_form_name||'Forma base';
+  return `<span class="tiny" title="Vínculo explícito; no sincroniza automáticamente HOME">En ${task.linked_shiny?'Shiny':'Living'} Dex · #${String(task.linked_dex_number).padStart(4,'0')} · ${html(form)}</span>`;
 }
 async function renderBank(){
-  const [data,summary,preview]=await Promise.all([request('/api/bank?pending=false'),request('/api/overview'),request('/api/bank/reconciliation')]);
-  state.bankPreview=Object.fromEntries(preview.items.map(item=>[item.task_id,item]));
-  app.innerHTML=head('FECHA LÍMITE · 26 FEB 2027','Plan Pokémon Bank','Todo lo que querés completar antes del cierre. Un objetivo termina al llegar a HOME.',`<span class="pill">◴ Transferencias</span>`)+
+  const [data,summary]=await Promise.all([request('/api/bank?pending=false'),request('/api/overview')]);
+  state.bankGames=data.games.map(g=>g.game);
+  app.innerHTML=head('FECHA LÍMITE · 26 FEB 2027','Plan Pokémon Bank','Lista de tareas por juego. Podés gestionar tareas exclusivas de Bank o vincularlas explícitamente con tu Pokédex.',
+    '<button class="btn btn-primary" id="bank-new-task" type="button">+ Agregar tarea</button>')+
     `<div class="stat-grid">${stat('Ejemplares en HOME',summary.bank.done,summary.bank.total,'De los ejemplares planificados')}${stat('Tareas completadas',data.items.filter(x=>x.in_home>=x.required).length,data.items.length,'Por Pokémon y juego')}${stat('Tareas pendientes',summary.bank.open_tasks,data.items.length,'Se muestran sin completar')}</div>
     <div class="toolbar"><div class="toolbar-left"><select id="bank-game" class="control select" aria-label="Filtrar por juego"><option value="">Todos los juegos</option>${data.games.map(x=>`<option value="${html(x.game)}">${html(x.game)}</option>`).join('')}</select>
     <label class="switch"><input id="bank-show-all" type="checkbox" ${state.bankAll?'checked':''}> Mostrar completadas</label></div></div>
-    <div class="notice"><strong>Coincidencias propuestas (sin confirmar):</strong> ${nf.format(preview.counts.suggested)} únicas · ${nf.format(preview.counts.ambiguous)} ambiguas · ${nf.format(preview.counts.unmatched)} sin correspondencia. Es una vista previa: no transfiere ejemplares ni modifica HOME. Las tareas de Bank y la Pokédex siguen siendo independientes.</div><div id="bank-table"></div>`;
+    <div id="bank-table"></div><div class="notice"><strong>Lista de tareas:</strong> «Solo Bank» no necesita una entrada en la Pokédex. «En Shiny/Living Dex» identifica un objetivo elegido explícitamente; los contadores de HOME siguen siendo independientes y nunca se suman automáticamente.</div>`;
   $('#bank-game').value=state.bankGame;
   $('#bank-game').addEventListener('change',e=>{state.bankGame=e.target.value;loadBankTable()});
   $('#bank-show-all').addEventListener('change',e=>{state.bankAll=e.target.checked;loadBankTable()});
+  $('#bank-new-task').addEventListener('click',()=>openBankTask());
   await loadBankTable();
 }
 async function loadBankTable(){
   const query=new URLSearchParams({game:state.bankGame,pending:String(!state.bankAll)});
   const result=await request('/api/bank?'+query);
   const root=$('#bank-table');if(!root)return;
-  if(!result.items.length){root.innerHTML='<div class="empty"><div class="empty-icon">◴</div><strong>No hay tareas con este filtro</strong>Importá el Excel 26Febrero27 desde la línea de comandos, o cambiá el filtro.</div>';return;}
+  if(!result.items.length){
+    root.innerHTML='<div class="empty"><div class="empty-icon">◴</div><strong>No hay tareas con este filtro</strong>Podés agregar una tarea o cambiar el filtro.</div>';
+    return;
+  }
   const groups=Object.groupBy?Object.groupBy(result.items,x=>x.game):result.items.reduce((a,x)=>((a[x.game]??=[]).push(x),a),{});
   root.innerHTML=Object.entries(groups).map(([game,items])=>{
     const status=result.games.find(x=>x.game===game);
     return `<div class="panel"><div class="panel-header"><div><h2>${html(game)} <span class="tiny">· ${items.length} tareas</span></h2><div class="tiny">Estado del juego</div></div>
     <div class="game-checks"><label class="toggle-line"><input class="bank-flag" type="checkbox" data-game="${html(game)}" data-field="started" ${status?.started?'checked':''}> Comenzado</label><label class="toggle-line"><input class="bank-flag" type="checkbox" data-game="${html(game)}" data-field="prepared" ${status?.prepared?'checked':''}> Preparado</label></div></div>
-    <div class="table-wrap"><table class="data-table"><thead><tr><th>Pokémon</th><th>Forma propuesta</th><th>Notas / método</th><th>Objetivo</th><th>Capturados</th><th>En HOME</th><th></th></tr></thead><tbody>
-    ${items.map(t=>`<tr data-bank-id="${t.id}"><td><div class="name-strong">${html(t.pokemon)}</div><div class="row-sub">${html(t.form_name||'Forma base')} · ${t.shiny?'Shiny':'Normal'}${t.ot_exception?' · OT de evento':''}</div></td>
-    <td>${bankSuggestionCell(t)}</td><td class="muted">${html(t.comments||'—')}</td><td>${t.required}</td><td><input class="tiny-input bank-caught" type="number" min="0" max="${t.required}" value="${t.caught}" aria-label="Capturados ${html(t.pokemon)}"></td>
+    <div class="table-wrap"><table class="data-table"><thead><tr><th>Pokémon</th><th>Relación con Pokédex</th><th>Notas / método</th><th>Objetivo</th><th>Capturados</th><th>En HOME</th><th></th></tr></thead><tbody>
+    ${items.map(t=>`<tr data-bank-id="${t.id}"><td><div class="name-strong">${html(t.pokemon)}</div><div class="row-sub">${html(t.form_name||'Forma base')} · ${t.shiny?'Shiny':'Normal'}${t.ot_exception?' · OT ajeno':''}</div></td>
+    <td>${bankLinkLabel(t)}</td><td class="muted">${html(t.comments||'—')}</td><td>${t.required}</td><td><input class="tiny-input bank-caught" type="number" min="0" max="${t.required}" value="${t.caught}" aria-label="Capturados ${html(t.pokemon)}"></td>
     <td><input class="tiny-input bank-home" type="number" min="0" max="${t.required}" value="${t.in_home}" aria-label="HOME ${html(t.pokemon)}"></td>
-    <td><button class="btn btn-small bank-save" type="button">Guardar</button></td></tr>`).join('')}</tbody></table></div></div>`;
+    <td><button class="btn btn-small bank-save" type="button">Guardar</button> <button class="btn btn-small bank-edit" type="button">Editar</button></td></tr>`).join('')}</tbody></table></div></div>`;
   }).join('');
+  const byId=new Map(result.items.map(item=>[item.id,item]));
   root.querySelectorAll('.bank-save').forEach(btn=>btn.addEventListener('click',async()=>{
     const row=btn.closest('tr');const id=Number(row.dataset.bankId);
     try{await patch('/api/bank/'+id,{caught:Number($('.bank-caught',row).value),in_home:Number($('.bank-home',row).value)});toast('Tarea actualizada');await renderBank();}
     catch(error){toast(error.message)}
   }));
+  root.querySelectorAll('.bank-edit').forEach(btn=>btn.addEventListener('click',()=>{
+    const id=Number(btn.closest('tr').dataset.bankId);
+    if(byId.has(id))openBankTask(byId.get(id));
+  }));
   root.querySelectorAll('.bank-flag').forEach(el=>el.addEventListener('change',async()=>{
     try{await patch('/api/bank-games/'+encodeURIComponent(el.dataset.game),{[el.dataset.field]:el.checked});toast('Estado del juego guardado');}
     catch(error){toast(error.message)}
   }));
+}
+function openBankTask(task=null){
+  const editing=Boolean(task);
+  const games=(state.bankGames||[]).map(game=>`<option value="${html(game)}"></option>`).join('');
+  modal(editing?'Editar tarea de Bank':'Nueva tarea de Bank',
+    `<form id="bank-task-form"><div class="form-grid">
+    <div class="field"><label for="bt-game">Juego</label><input id="bt-game" class="control" list="bt-games" maxlength="100" required value="${html(task?.game||'')}"><datalist id="bt-games">${games}</datalist></div>
+    <div class="field"><label for="bt-pokemon">Pokémon</label><input id="bt-pokemon" class="control" maxlength="100" required value="${html(task?.pokemon||'')}"></div>
+    <div class="field"><label for="bt-form">Forma (opcional)</label><input id="bt-form" class="control" maxlength="100" value="${html(task?.form_name||'')}"></div>
+    <div class="field"><label for="bt-required">Cantidad objetivo</label><input id="bt-required" type="number" class="control" min="1" max="999" required value="${task?.required||1}"></div>
+    <div class="field"><label for="bt-caught">Capturados</label><input id="bt-caught" type="number" class="control" min="0" max="999" required value="${task?.caught||0}"></div>
+    <div class="field"><label for="bt-home">Transferidos a HOME</label><input id="bt-home" type="number" class="control" min="0" max="999" required value="${task?.in_home||0}"></div>
+    <div class="field"><label><input id="bt-shiny" type="checkbox" ${!task||task.shiny?'checked':''}> Shiny</label></div>
+    <div class="field"><label><input id="bt-ot" type="checkbox" ${task?.ot_exception?'checked':''}> OT ajeno (NOT)</label></div>
+    <div class="field full"><label for="bt-comments">Notas / método</label><textarea id="bt-comments" class="control" rows="3" maxlength="1000">${html(task?.comments||'')}</textarea></div>
+    </div>
+    <label class="dex-ot-field"><input id="bt-linked" type="checkbox" ${task?.goal_id?'checked':''}><span><strong>Relacionar con un objetivo de la Pokédex</strong><small>Desmarcado = Solo Bank. Marcado = vínculo explícito con Shiny/Living Dex. No sincroniza HOME.</small></span></label>
+    <div id="bt-link-fields" class="field" style="margin-top:12px">
+      <label for="bt-link-search">Buscar objetivo existente en la Pokédex</label>
+      <div style="display:flex;gap:8px"><input id="bt-link-search" class="control" maxlength="100" value="${html(task?.pokemon||'')}" placeholder="Nombre o n.º de Pokédex"><button id="bt-find" type="button" class="btn">Buscar</button></div>
+      <label for="bt-goal">Seleccioná especie, forma y tipo</label>
+      <select id="bt-goal" class="control"><option value="">Elegí un objetivo...</option>${task?.goal_id?`<option value="${task.goal_id}" selected>${html(task.linked_species)} · ${html(task.linked_form_name||'Forma base')} · ${task.linked_shiny?'Shiny':'Normal'}</option>`:''}</select>
+      <p class="note" id="bt-link-note">Solo se muestran objetivos existentes de la colección elegida (Shiny/Normal).</p>
+    </div>
+    <div class="form-actions">${editing?'<button type="button" class="btn" id="bt-delete">Eliminar tarea</button>':''}<button type="button" class="btn" id="bt-cancel">Cancelar</button><button class="btn btn-primary" type="submit">${editing?'Guardar cambios':'Agregar tarea'}</button></div>
+    </form>`);
+  const linked=$('#bt-linked'), fields=$('#bt-link-fields'), selection=$('#bt-goal');
+  function showLink(){fields.classList.toggle('hidden',!linked.checked);}
+  linked.addEventListener('change',showLink);showLink();
+  $('#bt-cancel').addEventListener('click',closeModal);
+  $('#bt-find').addEventListener('click',async()=>{
+    const term=$('#bt-link-search').value.trim();
+    if(term.length<2){toast('Escribí al menos dos caracteres para buscar');return;}
+    try{
+      const params=new URLSearchParams({search:term,shiny:String($('#bt-shiny').checked)});
+      const response=await request('/api/bank/goal-options?'+params);
+      const candidates=response.items;
+      selection.innerHTML='<option value="">Elegí un objetivo...</option>'+candidates.map(g=>
+        `<option value="${g.goal_id}" data-species="${html(g.species)}" data-form="${html(g.form_name||'')}" data-shiny="${g.shiny}">#${String(g.dex_number).padStart(4,'0')} · ${html(g.species)} · ${html(g.form_name||'Forma base')} · ${g.shiny?'Shiny':'Normal'}</option>`).join('');
+      $('#bt-link-note').textContent=candidates.length?`${candidates.length} resultados (máximo 40). Elegí uno para completar especie y forma.`:'Sin resultados: podés dejar la tarea como Solo Bank.';
+    }catch(error){toast(error.message)}
+  });
+  selection.addEventListener('change',()=>{
+    const selected=selection.selectedOptions[0];
+    if(!selected?.value||!selected.dataset.species)return;
+    $('#bt-pokemon').value=selected.dataset.species;
+    $('#bt-form').value=selected.dataset.form||'';
+    $('#bt-shiny').checked=selected.dataset.shiny==='1';
+  });
+  if(editing){
+    $('#bt-delete').addEventListener('click',async()=>{
+      if(!window.confirm('¿Eliminar esta tarea de Bank? No se modificará la Pokédex.'))return;
+      try{
+        const resp=await fetch('/api/bank/'+task.id,{method:'DELETE'});
+        if(!resp.ok)throw Error('No se pudo eliminar la tarea ('+resp.status+')');
+        closeModal();toast('Tarea eliminada');await renderBank();
+      }catch(error){toast(error.message)}
+    });
+  }
+  $('#bank-task-form').addEventListener('submit',async event=>{
+    event.preventDefault();
+    if(linked.checked&&!selection.value){toast('Seleccioná un objetivo o desmarcá el vínculo para usar Solo Bank');return;}
+    const data={
+      game:$('#bt-game').value.trim(),pokemon:$('#bt-pokemon').value.trim(),
+      form_name:$('#bt-form').value.trim()||null,comments:$('#bt-comments').value.trim(),
+      shiny:$('#bt-shiny').checked,ot_exception:$('#bt-ot').checked,
+      required:Number($('#bt-required').value),caught:Number($('#bt-caught').value),
+      in_home:Number($('#bt-home').value),goal_id:linked.checked?Number(selection.value):null
+    };
+    try{
+      if(editing)await patch('/api/bank/'+task.id,data);
+      else await request('/api/bank',{method:'POST',body:JSON.stringify(data)});
+      closeModal();toast(editing?'Tarea actualizada':'Tarea agregada');await renderBank();
+    }catch(error){toast(error.message)}
+  });
 }
 async function renderHunts(){
   const hunts=await request('/api/hunts');
