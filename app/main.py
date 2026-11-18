@@ -198,7 +198,7 @@ def bank_goal_options(search: str = Query("", max_length=100),
 
 
 @app.get("/api/bank")
-def list_bank(game: str = "", search: str = "", pending: bool = True):
+def list_bank(game: str = "", search: str = "", pending: bool = True, save_id: int | None = Query(None, ge=0)):
     conditions = ["1=1"]
     params: list = []
     if game:
@@ -208,13 +208,21 @@ def list_bank(game: str = "", search: str = "", pending: bool = True):
         conditions.append("(t.pokemon LIKE ? OR t.form_name LIKE ? OR t.comments LIKE ?)")
         params.extend([f"%{search}%"] * 3)
     if pending: conditions.append("t.in_home<t.required")
+    if save_id is not None:
+        if save_id == 0:
+            conditions.append("t.save_id IS NULL")
+        else:
+            conditions.append("t.save_id=?")
+            params.append(save_id)
     with connect() as db:
         items = rows(db.execute(
             """SELECT t.*,s.started,s.prepared,
+                sv.name AS save_name,sv.shiny_charm AS save_shiny_charm,
                 g.form_key AS linked_form_key,
                 f.species AS linked_species,f.form_name AS linked_form_name,
                 f.dex_number AS linked_dex_number,g.shiny AS linked_shiny
                 FROM bank_tasks t JOIN bank_game_status s USING(game)
+                LEFT JOIN game_saves sv ON sv.id=t.save_id
                 LEFT JOIN goals g ON g.id=t.goal_id
                 LEFT JOIN pokemon_forms f ON f.form_key=g.form_key
                 WHERE """ + " AND ".join(conditions) +
@@ -234,6 +242,7 @@ class BankTaskCreate(BaseModel):
     caught: int = Field(default=0, ge=0, le=999)
     in_home: int = Field(default=0, ge=0, le=999)
     goal_id: int | None = Field(default=None, ge=1)
+    save_id: int | None = Field(default=None, ge=1)
 
 
 class BankPatch(BaseModel):
@@ -247,6 +256,7 @@ class BankPatch(BaseModel):
     caught: int | None = Field(default=None, ge=0, le=999)
     in_home: int | None = Field(default=None, ge=0, le=999)
     goal_id: int | None = Field(default=None, ge=1)
+    save_id: int | None = Field(default=None, ge=1)
 
 
 def _bank_task_values(db, values: dict):
@@ -258,6 +268,13 @@ def _bank_task_values(db, values: dict):
     values["pokemon"] = values["pokemon"].strip()
     values["form_name"] = (values["form_name"] or "").strip() or None
     values["comments"] = values["comments"].strip()
+    # Saved profiles determine the game. Legacy Bank rows without a profile
+    # retain their original game until explicitly assigned by the user.
+    if values.get("save_id") is not None:
+        saved = db.execute("SELECT game FROM game_saves WHERE id=?", (values["save_id"],)).fetchone()
+        if not saved:
+            raise HTTPException(422, "La partida seleccionada no existe")
+        values["game"] = saved["game"]
     if not values["game"] or not values["pokemon"]:
         raise HTTPException(422, "Juego y Pokémon son obligatorios")
     if not (0 <= values["in_home"] <= values["caught"] <= values["required"]):
@@ -282,6 +299,12 @@ def _bank_task_values(db, values: dict):
 def create_bank_task(data: BankTaskCreate):
     with connect() as db:
         values = _bank_task_values(db, data.model_dump())
+        if values["save_id"] is not None:
+            enabled = db.execute(
+                "SELECT g.available FROM game_saves s JOIN games g ON g.name=s.game WHERE s.id=?",
+                (values["save_id"],)).fetchone()
+            if not enabled or not enabled["available"]:
+                raise HTTPException(422, "Elegí una partida de un juego disponible")
         db.execute("INSERT OR IGNORE INTO bank_game_status(game) VALUES (?)", (values["game"],))
         columns = list(values)
         cur = db.execute(
@@ -300,12 +323,15 @@ def update_bank(task_id: int, patch: BankPatch):
             raise HTTPException(404, "Tarea no encontrada")
         if not provided:
             return dict(current)
-        if any(v is None for key, v in provided.items() if key not in {"goal_id", "form_name"}):
+        if any(v is None for key, v in provided.items() if key not in {"goal_id", "form_name", "save_id"}):
             raise HTTPException(422, "Valor nulo no permitido")
         fields = ("game", "pokemon", "form_name", "comments", "shiny", "ot_exception",
-                  "required", "caught", "in_home", "goal_id")
+                  "required", "caught", "in_home", "goal_id", "save_id")
         combined = {key: provided.get(key, current[key]) for key in fields}
         normalized = _bank_task_values(db, combined)
+        if normalized["game"] != current["game"] and current["source_row"] is not None:
+            # The old import row is not valid provenance for a different game.
+            db.execute("UPDATE bank_tasks SET source_row=NULL WHERE id=?", (task_id,))
         db.execute("INSERT OR IGNORE INTO bank_game_status(game) VALUES (?)", (normalized["game"],))
         db.execute("UPDATE bank_tasks SET " +
                    ", ".join(f"{field}=?" for field in fields) + " WHERE id=?",
@@ -446,9 +472,89 @@ def update_game(name: str, patch: GamePatch):
         return dict(db.execute("SELECT * FROM games WHERE name=?", (name,)).fetchone())
 
 
+
+@app.get("/api/game-saves")
+def list_game_saves(available_only: bool = False):
+    with connect() as db:
+        query = """SELECT sv.id,sv.game,sv.name,sv.shiny_charm,
+                    g.available AS game_available
+                    FROM game_saves sv JOIN games g ON g.name=sv.game"""
+        if available_only:
+            query += " WHERE g.available=1"
+        query += " ORDER BY sv.game,sv.name COLLATE NOCASE,sv.id"
+        return {"items": rows(db.execute(query))}
+
+
+class GameSaveNew(BaseModel):
+    game: str = Field(min_length=1, max_length=100)
+    name: str = Field(min_length=1, max_length=80)
+    shiny_charm: bool = False
+
+
+class GameSavePatch(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=80)
+    shiny_charm: bool | None = None
+
+
+@app.post("/api/game-saves", status_code=201)
+def create_game_save(data: GameSaveNew):
+    name = data.name.strip()
+    if not name:
+        raise HTTPException(422, "La partida necesita un nombre")
+    with connect() as db:
+        game = db.execute("SELECT available FROM games WHERE name=?", (data.game,)).fetchone()
+        if not game:
+            raise HTTPException(422, "Juego fuera del catálogo")
+        if not game["available"]:
+            raise HTTPException(422, "Primero marcá el juego como disponible")
+        try:
+            cur = db.execute(
+                "INSERT INTO game_saves(game,name,shiny_charm) VALUES(?,?,?)",
+                (data.game, name, int(data.shiny_charm)))
+        except sqlite3.IntegrityError as exc:
+            raise HTTPException(409, "Ya existe una partida con ese nombre para el juego") from exc
+        return dict(db.execute("SELECT * FROM game_saves WHERE id=?", (cur.lastrowid,)).fetchone())
+
+
+@app.patch("/api/game-saves/{save_id}")
+def update_game_save(save_id: int, patch: GameSavePatch):
+    values = patch.model_dump(exclude_unset=True)
+    if any(value is None for value in values.values()):
+        raise HTTPException(422, "Usá un valor no nulo")
+    if "name" in values:
+        values["name"] = values["name"].strip()
+        if not values["name"]:
+            raise HTTPException(422, "La partida necesita un nombre")
+    if "shiny_charm" in values:
+        values["shiny_charm"] = int(values["shiny_charm"])
+    with connect() as db:
+        if not db.execute("SELECT 1 FROM game_saves WHERE id=?", (save_id,)).fetchone():
+            raise HTTPException(404, "Partida no encontrada")
+        if values:
+            try:
+                db.execute("UPDATE game_saves SET " +
+                           ", ".join(f"{col}=?" for col in values) + " WHERE id=?",
+                           [*values.values(), save_id])
+            except sqlite3.IntegrityError as exc:
+                raise HTTPException(409, "Ya existe una partida con ese nombre") from exc
+        return dict(db.execute("SELECT * FROM game_saves WHERE id=?", (save_id,)).fetchone())
+
+
+@app.delete("/api/game-saves/{save_id}", status_code=204)
+def delete_game_save(save_id: int):
+    with connect() as db:
+        if not db.execute("SELECT 1 FROM game_saves WHERE id=?", (save_id,)).fetchone():
+            raise HTTPException(404, "Partida no encontrada")
+        linked = db.execute("SELECT COUNT(*) FROM bank_tasks WHERE save_id=?", (save_id,)).fetchone()[0]
+        if linked:
+            raise HTTPException(409, "Esta partida tiene tareas de Bank; reasignalas antes de eliminarla")
+        db.execute("DELETE FROM game_saves WHERE id=?", (save_id,))
+    return Response(status_code=204)
+
+
 @app.get("/api/backup")
 def export_backup():
-    tables = ("goals", "bank_tasks", "bank_game_status", "hunts", "hunt_phases", "games", "import_history")
+    tables = ("goals", "bank_tasks", "bank_game_status", "hunts", "hunt_phases", "games", "game_saves", "import_history")
     with connect() as db:
         result = {name: rows(db.execute(f"SELECT * FROM {name}")) for name in tables}
     return JSONResponse({"format": "optpoke-backup", "version": 1, "data": result},
@@ -466,13 +572,17 @@ def restore_backup(payload: BackupIn):
     # Restore only trusted app-format backups; this replaces user progress.
     writable = {
         "goals": {"id", "form_key", "shiny", "target", "in_home", "obtainability", "ot_exception", "pending_evolution"},
-        "bank_tasks": {"id", "game", "pokemon", "form_name", "comments", "shiny", "ot_exception", "required", "caught", "in_home", "source_row", "goal_id"},
+        "bank_tasks": {"id", "game", "pokemon", "form_name", "comments", "shiny", "ot_exception", "required", "caught", "in_home", "source_row", "goal_id", "save_id"},
         "bank_game_status": {"game", "started", "prepared"},
         "hunts": {"id", "pokemon", "game", "method", "probability", "seconds_per_attempt", "attempts", "status", "shiny_found", "unknown_phases", "source", "created_at"},
         "hunt_phases": {"id", "hunt_id", "at_attempt", "note"},
         "games": {"name", "available", "shiny_charm"},
+        "game_saves": {"id", "game", "name", "shiny_charm"},
         "import_history": {"digest", "kind", "imported_at"},
     }
+    # Restore older v1 backups without profile rows or save_id, keeping legacy
+    # Bank tasks associated with a game but without inventing a save.
+    payload.data.setdefault("game_saves", [])
     if set(payload.data) != set(writable):
         raise HTTPException(422, "El respaldo no tiene todas las tablas esperadas")
     for tab, items in payload.data.items():
@@ -484,13 +594,14 @@ def restore_backup(payload: BackupIn):
                     item.setdefault(field, 0)
             if tab == "bank_tasks":
                 item.setdefault("goal_id", None)
+                item.setdefault("save_id", None)
             if set(item) != writable[tab]:
                 raise HTTPException(422, f"Campos inválidos en {tab}")
     try:
         with connect() as db:
-            for table in ("hunt_phases", "hunts", "bank_tasks", "bank_game_status", "goals", "games", "import_history"):
+            for table in ("hunt_phases", "hunts", "bank_tasks", "game_saves", "bank_game_status", "goals", "games", "import_history"):
                 db.execute(f"DELETE FROM {table}")
-            for tab in ("goals", "bank_game_status", "bank_tasks", "hunts", "hunt_phases", "games", "import_history"):
+            for tab in ("goals", "games", "game_saves", "bank_game_status", "bank_tasks", "hunts", "hunt_phases", "import_history"):
                 items = payload.data[tab]
                 if items:
                     columns = list(items[0])

@@ -22,6 +22,11 @@
 
 ## v0.2 — Progreso y Pokémon Bank
 
+- [x] Menú lateral plegable para aprovechar el ancho del contenido.
+- [x] Catálogo de juegos disponibles con varias partidas por juego y Shiny Charm independiente por partida.
+- [x] Selector de partidas configuradas al agregar tareas Bank; las anteriores se conservan sin partida asignada.
+- [x] Migración SQLite y respaldo compatibles con perfiles nuevos y datos anteriores.
+
 - [x] Bank como TODO list editable: agregar, modificar, eliminar tareas y mantener cantidades de captura/HOME.
 - [x] Distinguir tareas «Solo Bank» de tareas asociadas explícitamente a Shiny/Living Dex, con vínculo reversible.
 - [x] Migración aditiva y respaldo compatible con tareas existentes sin vínculo.
@@ -29,7 +34,7 @@
 
 - [x] EVO: evolución objetivo pendiente, con importación, edición y filtro; independiente de HOME.
 - [x] Paginación completa en la cabecera fija junto al buscador compacto.
-- [ ] Vincular cada tarea de Bank a la forma correspondiente de la Pokédex con coincidencias verificadas.
+- [x] Permitir vínculos **opcionales y explícitos** de tareas Bank con objetivos del catálogo, sin enlaces automáticos.
 - [ ] Mantener un único progreso en HOME, sin contar dos veces ejemplares o transferencias.
 - [ ] Mejorar el seguimiento de tareas y transferencias por juego.
 

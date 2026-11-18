@@ -1,5 +1,14 @@
 ## Sin publicar
 
+### Juegos y partidas; navegación plegable
+
+- Menú lateral desplegable desde la barra superior, cerrado de forma predeterminada para liberar el ancho central y con preferencia de apertura guardada en el navegador.
+- Nueva sección Juegos y partidas basada en el catálogo existente; permite marcar juegos y crear, renombrar o eliminar partidas individuales con Shiny Charm propio.
+- Bank utiliza el selector de partidas configuradas para las tareas nuevas y permite filtrar por partida; las tareas heredadas conservan su juego hasta que el usuario les asigne una partida.
+- Migración aditiva de `game_saves` y `bank_tasks.save_id`; respaldo JSON compatible con versiones anteriores. No se modifican contadores de HOME ni vínculos de Pokédex.
+- Validaciones y pruebas para impedir borrar partidas con tareas asociadas o inventar asignaciones a partidas.
+
+
 ### Preparación de v0.2: Bank como TODO list editable
 
 - Crear, editar o eliminar tareas Bank desde la interfaz; editar juego, Pokémon, forma, condición shiny/OT, notas y cantidades.

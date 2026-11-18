@@ -410,3 +410,33 @@ button.dex-status:hover{background:#38583c;border-color:#729457}
 }
 
 .dex-evo-mark{justify-self:start;color:#f0cf86;background:#403824;border:1px solid #756139;border-radius:4px;padding:2px 5px;font-size:10px;line-height:1.2}
+
+
+/* Menú lateral desplegable: cerrado, todo el ancho queda para el contenido. */
+.sidebar{transition:width .2s ease,padding .2s ease;overflow:hidden}
+.shell.sidebar-collapsed .sidebar{width:0!important;min-width:0!important;padding:0!important;border-right:0!important;pointer-events:none}
+.topbar-left{display:flex;align-items:center;gap:12px;min-width:0}
+.sidebar-toggle{flex:none;display:grid;place-items:center;width:40px;height:40px;background:#20392e;border:1px solid #4c7456;border-radius:8px;color:#d7f9c5;font-size:21px}
+.sidebar-toggle:hover{background:#2b4b35}
+.sidebar-toggle:focus-visible{outline:2px solid #c2f87f;outline-offset:2px}
+.sidebar-backdrop{display:none}
+.game-catalog-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:12px;margin-top:18px}
+.game-profile-card{border:1px solid var(--border);padding:16px;background:var(--surface);border-radius:10px;min-width:0}
+.game-profile-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.game-profile-head .game-title{font-size:14px}
+.game-profile-list{display:grid;gap:8px;margin-top:12px}
+.game-save-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:var(--surface-2);border:1px solid var(--border);border-radius:7px}
+.game-save-row .game-name{font-size:12px;font-weight:650;overflow-wrap:anywhere}
+.game-save-row .tag{margin-left:6px}
+.game-empty-caption{font-size:11px;color:var(--muted);margin-top:10px}
+@media(max-width:900px){
+  .shell:not(.sidebar-collapsed) .sidebar{position:fixed;inset:0 auto 0 0;z-index:42;width:min(285px,85vw)!important;height:100vh;padding:24px 15px!important;overflow-y:auto;box-shadow:16px 0 55px #0008}
+  .shell:not(.sidebar-collapsed) .sidebar .brand{margin:0 8px 28px}
+  .shell:not(.sidebar-collapsed) .sidebar .brand>div:not(.brand-mark){display:block}
+  .shell:not(.sidebar-collapsed) .sidebar .nav-label{display:block;margin:16px 0 8px}
+  .shell:not(.sidebar-collapsed) .sidebar .nav-item{justify-content:flex-start;font-size:13px;padding:12px 14px}
+  .shell:not(.sidebar-collapsed) .sidebar .nav-icon{font-size:19px}
+  .shell:not(.sidebar-collapsed) .sidebar .nav-arrow,.shell:not(.sidebar-collapsed) .sidebar .sidebar-bottom{display:block}
+  .shell:not(.sidebar-collapsed) .sidebar-backdrop{display:block;position:fixed;inset:0;z-index:41;width:100%;height:100%;border:0;background:rgba(0,0,0,.65)}
+}
+@media(prefers-reduced-motion:reduce){.sidebar{transition:none}}
