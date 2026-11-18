@@ -203,10 +203,9 @@ function bankLinkLabel(task){
 async function renderBank(){
   const [data,summary]=await Promise.all([request('/api/bank?pending=false'),request('/api/overview')]);
   state.bankGames=data.games.map(g=>g.game);
-  app.innerHTML=head('FECHA LÍMITE · 26 FEB 2027','Plan Pokémon Bank','Lista de tareas por juego. Podés gestionar tareas exclusivas de Bank o vincularlas explícitamente con tu Pokédex.',
-    '<button class="btn btn-primary" id="bank-new-task" type="button">+ Agregar tarea</button>')+
+  app.innerHTML=head('FECHA LÍMITE · 26 FEB 2027','Plan Pokémon Bank','Lista de tareas por juego. Podés gestionar tareas exclusivas de Bank o vincularlas explícitamente con tu Pokédex.')+
     `<div class="stat-grid">${stat('Ejemplares en HOME',summary.bank.done,summary.bank.total,'De los ejemplares planificados')}${stat('Tareas completadas',data.items.filter(x=>x.in_home>=x.required).length,data.items.length,'Por Pokémon y juego')}${stat('Tareas pendientes',summary.bank.open_tasks,data.items.length,'Se muestran sin completar')}</div>
-    <div class="toolbar"><div class="toolbar-left"><select id="bank-game" class="control select" aria-label="Filtrar por juego"><option value="">Todos los juegos</option>${data.games.map(x=>`<option value="${html(x.game)}">${html(x.game)}</option>`).join('')}</select>
+    <div class="toolbar"><div class="toolbar-left"><button class="btn btn-primary" id="bank-new-task" type="button">+ Agregar tarea</button><select id="bank-game" class="control select" aria-label="Filtrar por juego"><option value="">Todos los juegos</option>${data.games.map(x=>`<option value="${html(x.game)}">${html(x.game)}</option>`).join('')}</select>
     <label class="switch"><input id="bank-show-all" type="checkbox" ${state.bankAll?'checked':''}> Mostrar completadas</label></div></div>
     <div id="bank-table"></div><div class="notice"><strong>Lista de tareas:</strong> «Solo Bank» no necesita una entrada en la Pokédex. «En Shiny/Living Dex» identifica un objetivo elegido explícitamente; los contadores de HOME siguen siendo independientes y nunca se suman automáticamente.</div>`;
   $('#bank-game').value=state.bankGame;
