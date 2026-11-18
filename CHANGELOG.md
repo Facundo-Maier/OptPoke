@@ -1,10 +1,11 @@
 ## Sin publicar
 
-### Preparación de v0.2: conciliación segura Bank–Pokédex
+### Preparación de v0.2: Bank como TODO list editable
 
-- Añadida previsualización de posibles coincidencias entre tareas Bank y formas del catálogo; separa coincidencias únicas, ambiguas y no reconocidas.
-- La vista Bank muestra propuestas no confirmadas y una nota explícita: **no sincroniza ni suma ejemplares en HOME**.
-- Nuevas pruebas sintéticas de aislamiento entre Bank y Pokédex, sin cambios de SQLite ni progreso personal.
+- Crear, editar o eliminar tareas Bank desde la interfaz; editar juego, Pokémon, forma, condición shiny/OT, notas y cantidades.
+- Clasificación explícita «Solo Bank» (por defecto, incluyendo importadas) o «En Shiny/Living Dex», con selector de objetivo real y vínculo reversible.
+- Migración SQLite aditiva `bank_tasks.goal_id` y compatibilidad de respaldo con versiones anteriores.
+- La asociación nunca sincroniza ni suma contadores de HOME. Pruebas sintéticas de CRUD, vínculos y migración sin publicar progreso personal.
 - Se cierra documentalmente la auditoría de sprites del 17/11 (631 en caché, 7 sin comprobar y 0 fuentes agotadas; revisión visual confirmada por el usuario).
 - Se documenta el flujo obligatorio `rama desde develop → PR a develop → pruebas → main solo para release`.
 
