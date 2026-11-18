@@ -53,6 +53,7 @@ erDiagram
 | Directorio | Responsabilidad |
 | --- | --- |
 | `app/db.py` | Esquema SQLite y catálogo inicial |
+| `app/bank_reconcile.py` | Previsualización conservadora de coincidencias entre tareas Bank y objetivos, sin escrituras |
 | `app/sprite_cache.py` | Descarga autorizada bajo demanda, caché persistente, ausencias y modo offline |
 | `app/main.py` | API HTTP, validaciones y persistencia |
 | `app/math_utils.py` | Fórmulas de probabilidades |
@@ -75,10 +76,14 @@ erDiagram
 
 `scripts/auditar_sprites.cjs` utiliza las mismas funciones `spriteSources()` y `pokeApiVariety()` que la interfaz, y reconstruye las rutas de caché mediante hashes SHA-256 compatibles con `app/sprite_cache.py`. No cambia el esquema SQLite ni descarga imágenes por defecto. Los informes `reportes_sprites/` se excluyen de Git. La [guía](SPRITES.md) distingue imágenes cacheadas, fuentes aún no probadas, 404 y validación visual pendiente.
 
+## Primera etapa de integración de Bank (v0.2 en desarrollo)
+
+`app/bank_reconcile.py` compara tareas existentes con objetivos de la Pokédex (especie, forma y shiny), sin modificar ni vincular registros. Se presentan únicamente **propuestas** en la API `GET /api/bank/reconciliation` y en la interfaz. Las formas sin identificación explícita que puedan significar varias variantes quedan ambiguas, y las no incluidas en el catálogo no se inventan. El progreso de HOME sigue independiente hasta definir una reconciliación confirmada y sin doble conteo. Ver [BANK_RECONCILIATION.md](BANK_RECONCILIATION.md).
+
 ## Decisiones futuras
 
 1. Vincular automáticamente cada tarea Bank con `form_key` y con ejemplares concretos.
-2. Definir la semántica de `EVO` en las exportaciones de AustinJohn; hasta entonces se informa y omite sin tocar el objetivo.
+2. Conservar la semántica ya implementada de `EVO` como evolución pendiente independiente del progreso en HOME.
 3. Completar los sprites de formas que no tienen una imagen correcta y, cuando sea necesario, revisar los registros de ausencia guardados.
 4. Crear catálogo versionado de juegos, métodos, probabilidades, restricciones de OT y fuentes verificables.
 5. Añadir perfiles de partida y condiciones necesarias (Shiny Charm, cadenas, encuentros, etc.).
