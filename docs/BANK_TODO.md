@@ -8,13 +8,13 @@ hojas de Shiny/Living Dex.
 
 En **Plan Bank**:
 
-- **Agregar tarea:** elegir un juego, Pokémon, forma (si aplica), shiny/normal,
+- **Agregar tarea:** elegir una partida configurada en [Juegos y partidas](GAME_SAVES.md), Pokémon, forma (si aplica), shiny/normal,
   notas, cantidad requerida, capturados y enviados a HOME.
-- **Editar:** permite cambiar todos esos datos, incluido el juego y la asociación.
+- **Editar:** permite cambiar todos esos datos, incluida la partida y la asociación. Las tareas antiguas sin partida siguen siendo editables.
   Los campos de cantidades deben cumplir `0 ≤ en HOME ≤ capturados ≤ requeridos`.
 - **Eliminar:** requiere confirmación y solo borra esa tarea de Bank.
 - La edición rápida de capturados/HOME sigue disponible en las filas.
-- Los filtros por juego y tareas pendientes/completadas siguen funcionando.
+- Los filtros por juego, por partida y por tareas pendientes/completadas siguen funcionando.
 
 La lista no está limitada a los Pokémon del catálogo. Podés registrar cualquier
 objetivo operativo o de transferencia, tanto de la Shiny Dex como fuera de ella.
@@ -44,7 +44,7 @@ ni sincroniza automáticamente** porque podrían referirse al mismo ejemplar.
 
 ## Persistencia y compatibilidad
 
-- La migración agrega de forma segura `bank_tasks.goal_id`, referencia opcional
+- La migración agrega de forma segura `bank_tasks.save_id` (perfil de partida opcional) y `bank_tasks.goal_id`, referencia opcional
   a `goals.id` con `ON DELETE SET NULL`. Las tareas previas reciben `NULL`.
 - Las copias JSON nuevas exportan la asociación; al restaurar respaldos antiguos
   sin el campo, las tareas quedan como Solo Bank.

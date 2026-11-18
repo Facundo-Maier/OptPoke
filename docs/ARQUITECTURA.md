@@ -15,6 +15,8 @@
 erDiagram
   POKEMON_FORMS ||--o{ GOALS : define
   BANK_GAME_STATUS ||--o{ BANK_TASKS : agrupa
+  GAMES ||--o{ GAME_SAVES : tiene
+  GAME_SAVES ||--o{ BANK_TASKS : asignada
   HUNTS ||--o{ HUNT_PHASES : registra
   POKEMON_FORMS {
     string form_key PK
@@ -30,8 +32,15 @@ erDiagram
     int in_home
     string obtainability
   }
+  GAME_SAVES {
+    int id PK
+    string game FK
+    string name
+    boolean shiny_charm
+  }
   BANK_TASKS {
     int id PK
+    int save_id FK
     string game FK
     string pokemon
     int required
@@ -79,6 +88,10 @@ erDiagram
 ## Primera etapa de integración de Bank (v0.2 en desarrollo)
 
 Bank funciona como una TODO list editable mediante `GET/POST /api/bank` y `PATCH/DELETE /api/bank/{task_id}`. El campo opcional `goal_id` apunta a un objetivo de la Pokédex solo si el usuario lo selecciona explícitamente; `NULL` significa «Solo Bank», incluso para tareas importadas antiguamente. La interfaz permite buscar objetivos con `GET /api/bank/goal-options`, sin asociar automáticamente especies ni formas. `in_home` de Bank y de la Pokédex siguen independientes y no se suman. Ver [BANK_TODO.md](BANK_TODO.md).
+
+## Juegos y partidas (v0.2)
+
+El catálogo de `games` ya existía; ahora cada título puede tener muchas entradas `game_saves`, con identificador, nombre y Shiny Charm por partida. Los juegos se seleccionan desde el catálogo; Bank referencia una partida mediante `bank_tasks.save_id`, mientras que el campo `game` se conserva para compatibilidad con tareas antiguas e importaciones. Las tareas sin `save_id` no se fuerzan a ninguna partida. La relación con la Pokédex (`goal_id`) sigue siendo distinta e independiente. El backup JSON conserva esta información y acepta respaldos antiguos. El menú lateral se pliega con el botón de la barra superior. Ver [GAME_SAVES.md](GAME_SAVES.md).
 
 ## Decisiones futuras
 

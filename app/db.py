@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS bank_tasks (
     in_home INTEGER NOT NULL DEFAULT 0 CHECK (in_home >= 0),
     source_row INTEGER,
     goal_id INTEGER REFERENCES goals(id) ON DELETE SET NULL,
+    save_id INTEGER REFERENCES game_saves(id) ON DELETE RESTRICT,
     UNIQUE(game, source_row)
 );
 CREATE TABLE IF NOT EXISTS hunts (
@@ -100,6 +101,13 @@ CREATE TABLE IF NOT EXISTS games (
     name TEXT PRIMARY KEY,
     available INTEGER NOT NULL DEFAULT 1 CHECK (available IN (0,1)),
     shiny_charm INTEGER NOT NULL DEFAULT 0 CHECK (shiny_charm IN (0,1))
+);
+CREATE TABLE IF NOT EXISTS game_saves (
+    id INTEGER PRIMARY KEY,
+    game TEXT NOT NULL REFERENCES games(name),
+    name TEXT NOT NULL COLLATE NOCASE CHECK (length(trim(name)) BETWEEN 1 AND 80),
+    shiny_charm INTEGER NOT NULL DEFAULT 0 CHECK (shiny_charm IN (0,1)),
+    UNIQUE(game,name)
 );
 CREATE TABLE IF NOT EXISTS import_history (
     digest TEXT PRIMARY KEY,
@@ -188,6 +196,9 @@ def initialize() -> None:
         if "goal_id" not in task_fields:
             db.execute("ALTER TABLE bank_tasks ADD COLUMN goal_id INTEGER REFERENCES goals(id) ON DELETE SET NULL")
         db.execute("CREATE INDEX IF NOT EXISTS idx_bank_goal ON bank_tasks(goal_id)")
+        if "save_id" not in task_fields:
+            db.execute("ALTER TABLE bank_tasks ADD COLUMN save_id INTEGER REFERENCES game_saves(id) ON DELETE RESTRICT")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_bank_save ON bank_tasks(save_id)")
         db.executemany("INSERT OR IGNORE INTO games(name) VALUES (?)", [(g,) for g in GAMES])
         seed_locked_shinies(db)
 

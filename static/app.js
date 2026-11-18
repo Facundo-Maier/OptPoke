@@ -1,12 +1,27 @@
 'use strict';
 const $ = (selector, root=document) => root.querySelector(selector);
 const app = $('#app');
-const state = {page:'shiny',search:'',status:'all',sort:'dex',offset:0,limit:72,bankGame:'',bankAll:false,bankPreview:null,selectedGoalId:null,dexRequestSeq:0};
+const state = {page:'shiny',search:'',status:'all',sort:'dex',offset:0,limit:72,bankGame:'',bankSaveFilter:'',bankAll:false,gameSearch:'',gamesOnlyActive:false,bankSaves:[],selectedGoalId:null,dexRequestSeq:0};
 const html = (x) => String(x??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nf = new Intl.NumberFormat('es-UY');
 const percent = n => (Number(n)*100).toLocaleString('es-UY',{maximumFractionDigits:2}) + '%';
 let dexSpotlightObserver=null;
-const pages = {shiny:'Shiny Dex',normal:'Living Dex',bank:'Plan Bank',hunts:'Cacerías',compare:'Comparador',settings:'Configuración'};
+const pages = {shiny:'Shiny Dex',normal:'Living Dex',bank:'Plan Bank',games:'Juegos y partidas',hunts:'Cacerías',compare:'Comparador',settings:'Configuración'};
+
+const shell=$('#app-shell'),sidebar=$('#sidebar'),menuToggle=$('#sidebar-toggle');
+function setSidebar(open){
+  shell.classList.toggle('sidebar-collapsed',!open);
+  sidebar.inert=!open;
+  menuToggle.setAttribute('aria-expanded',String(open));
+  menuToggle.setAttribute('aria-label',open?'Cerrar menú':'Abrir menú');
+  try{localStorage.setItem('optpoke-menu-open',open?'1':'0');}catch(_){}
+}
+menuToggle.addEventListener('click',()=>setSidebar(shell.classList.contains('sidebar-collapsed')));
+$('#sidebar-backdrop').addEventListener('click',()=>setSidebar(false));
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!shell.classList.contains('sidebar-collapsed'))setSidebar(false);});
+let remembered=false;
+try{remembered=localStorage.getItem('optpoke-menu-open')==='1';}catch(_){}
+setSidebar(remembered&&!window.matchMedia('(max-width:900px)').matches);
 function toast(message){const el=$('#toast');el.textContent=message;el.classList.remove('hidden');setTimeout(()=>el.classList.add('hidden'),3500);}
 async function request(url,options={}){
   const response=await fetch(url,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});
@@ -26,10 +41,10 @@ async function go(page){
   $('#breadcrumb-current').textContent=pages[page];
   app.innerHTML='<div class="loading">Cargando…</div>';
   window.scrollTo({top:0,behavior:'instant'});
-  try {if(page==='shiny'||page==='normal')await renderDex();else if(page==='bank')await renderBank();else if(page==='hunts')await renderHunts();else if(page==='settings')await renderSettings();else await renderCompare();}
+  try {if(page==='shiny'||page==='normal')await renderDex();else if(page==='bank')await renderBank();else if(page==='games')await renderGames();else if(page==='hunts')await renderHunts();else if(page==='settings')await renderSettings();else await renderCompare();}
   catch(e){app.innerHTML=`<div class="empty"><strong>No se pudo cargar</strong>${html(e.message)}</div>`;}
 }
-document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>go(b.dataset.page)));
+document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>{go(b.dataset.page);if(window.matchMedia('(max-width:900px)').matches)setSidebar(false);}));
 const head=(eyebrow,title,description,actions='')=>`<div class="eyebrow">${eyebrow}</div><div class="heading-row"><div><h1>${title}</h1><p class="description">${description}</p></div><div class="headline-actions">${actions}</div></div>`;
 const stat=(label,done,total,foot)=>`<div class="stat-card"><div class="stat-label">${label}</div><div class="stat-number">${nf.format(done||0)}<span> / ${nf.format(total||0)}</span></div><div class="progress-track"><div class="progress-fill" style="width:${total?Math.min(100,Math.max(0,100*done/total)):0}%"></div></div><div class="stat-footer">${foot}</div></div>`;
 function possibleSprite(item){
@@ -195,27 +210,97 @@ function openGoal(goal){
   });
 }
 
+
+async function renderGames(){
+  const [games,result]=await Promise.all([request('/api/games'),request('/api/game-saves')]);
+  const saves=result.items;
+  app.innerHTML=head('JUEGOS Y PARTIDAS','Mis juegos','Marcá los juegos del catálogo y creá todas las partidas que necesites. Cada partida tiene su Shiny Charm.')+
+    `<div class="toolbar"><div class="toolbar-left"><input id="game-search" class="control" placeholder="Buscar juego" aria-label="Buscar juego">
+    <label class="switch"><input type="checkbox" id="games-active-only" ${state.gamesOnlyActive?'checked':''}> Solo disponibles</label></div></div>
+    <div id="game-list" class="game-catalog-list"></div>
+    <div class="notice">Las nuevas tareas de Bank utilizarán estas partidas. Las tareas antiguas permanecen intactas y pueden asignarse a una partida cuando quieras.</div>`;
+  const holder=$('#game-list');
+  function draw(){
+    const query=state.gameSearch.trim().toLocaleLowerCase();
+    const shown=games.filter(g=>(!state.gamesOnlyActive||g.available)&&g.name.toLocaleLowerCase().includes(query));
+    holder.innerHTML=shown.length?shown.map(g=>{
+      const own=saves.filter(p=>p.game===g.name);
+      return `<section class="game-profile-card"><div class="game-profile-head"><strong class="game-title">${html(g.name)}</strong>
+        <label class="switch"><input class="game-available" data-game="${html(g.name)}" type="checkbox" ${g.available?'checked':''}> Disponible</label></div>
+        <div class="game-profile-list">${own.map(p=>`<div class="game-save-row"><span class="game-name">${html(p.name)} ${p.shiny_charm?'<span class="tag green">Charm</span>':''}</span>
+          <button class="btn btn-small save-edit" data-id="${p.id}" type="button">Editar</button></div>`).join('')}</div>
+        ${own.length?'':'<div class="game-empty-caption">Sin partidas configuradas</div>'}
+        <div class="hunt-actions"><button class="btn btn-small save-add" data-game="${html(g.name)}" type="button" ${g.available?'':'disabled'}>+ Agregar partida</button></div>
+      </section>`;
+    }).join(''):'<div class="empty">No se encontraron juegos con estos filtros.</div>';
+    holder.querySelectorAll('.game-available').forEach(input=>input.addEventListener('change',async()=>{
+      const game=games.find(g=>g.name===input.dataset.game);
+      try{await patch('/api/games/'+encodeURIComponent(game.name),{available:input.checked});game.available=Number(input.checked);toast('Juego actualizado');draw();}
+      catch(e){input.checked=!input.checked;toast(e.message);}
+    }));
+    holder.querySelectorAll('.save-add').forEach(b=>b.addEventListener('click',()=>openGameSave(b.dataset.game)));
+    holder.querySelectorAll('.save-edit').forEach(b=>b.addEventListener('click',()=>{
+      const save=saves.find(p=>p.id===Number(b.dataset.id));if(save)openGameSave(save.game,save);
+    }));
+  }
+  $('#game-search').value=state.gameSearch;
+  $('#game-search').addEventListener('input',e=>{state.gameSearch=e.target.value;draw();});
+  $('#games-active-only').addEventListener('change',e=>{state.gamesOnlyActive=e.target.checked;draw();});
+  draw();
+}
+function openGameSave(game,save=null){
+  const editing=Boolean(save);
+  modal(editing?'Editar partida · '+game:'Agregar partida · '+game,`<form id="save-form">
+    <div class="field"><label for="save-name">Nombre de la partida</label><input id="save-name" class="control" maxlength="80" required value="${html(save?.name||'Partida principal')}"></div>
+    <label class="dex-ot-field"><input id="save-charm" type="checkbox" ${save?.shiny_charm?'checked':''}><span><strong>Shiny Charm en esta partida</strong><small>Esta marca es independiente de otras partidas del mismo juego.</small></span></label>
+    <div class="form-actions">${editing?'<button class="btn" type="button" id="save-delete">Eliminar</button>':''}
+      <button class="btn" type="button" id="save-cancel">Cancelar</button>
+      <button class="btn btn-primary" type="submit">${editing?'Guardar cambios':'Crear partida'}</button></div></form>`);
+  $('#save-cancel').addEventListener('click',closeModal);
+  if(editing)$('#save-delete').addEventListener('click',async()=>{
+    if(!window.confirm('¿Eliminar esta partida? Si tiene tareas Bank, habrá que reasignarlas primero.'))return;
+    try{
+      const response=await fetch('/api/game-saves/'+save.id,{method:'DELETE'});
+      if(!response.ok){let info={};try{info=await response.json();}catch(_){}throw Error(info.detail||'No se pudo eliminar');}
+      closeModal();toast('Partida eliminada');await renderGames();
+    }catch(error){toast(error.message);}
+  });
+  $('#save-form').addEventListener('submit',async e=>{
+    e.preventDefault();
+    const data={name:$('#save-name').value.trim(),shiny_charm:$('#save-charm').checked};
+    try{
+      if(editing)await patch('/api/game-saves/'+save.id,data);
+      else await request('/api/game-saves',{method:'POST',body:JSON.stringify({...data,game})});
+      closeModal();toast('Partida guardada');await renderGames();
+    }catch(error){toast(error.message);}
+  });
+}
+
 function bankLinkLabel(task){
   if(!task.goal_id)return '<span class="tiny muted">Solo Bank</span>';
   const form=task.linked_form_name||'Forma base';
   return `<span class="tiny" title="Vínculo explícito; no sincroniza automáticamente HOME">En ${task.linked_shiny?'Shiny':'Living'} Dex · #${String(task.linked_dex_number).padStart(4,'0')} · ${html(form)}</span>`;
 }
 async function renderBank(){
-  const [data,summary]=await Promise.all([request('/api/bank?pending=false'),request('/api/overview')]);
-  state.bankGames=data.games.map(g=>g.game);
+  const [data,summary,saveResult]=await Promise.all([request('/api/bank?pending=false'),request('/api/overview'),request('/api/game-saves')]);
+  state.bankSaves=saveResult.items;
   app.innerHTML=head('FECHA LÍMITE · 26 FEB 2027','Plan Pokémon Bank','Lista de tareas por juego. Podés gestionar tareas exclusivas de Bank o vincularlas explícitamente con tu Pokédex.')+
     `<div class="stat-grid">${stat('Ejemplares en HOME',summary.bank.done,summary.bank.total,'De los ejemplares planificados')}${stat('Tareas completadas',data.items.filter(x=>x.in_home>=x.required).length,data.items.length,'Por Pokémon y juego')}${stat('Tareas pendientes',summary.bank.open_tasks,data.items.length,'Se muestran sin completar')}</div>
     <div class="toolbar"><div class="toolbar-left"><button class="btn btn-primary" id="bank-new-task" type="button">+ Agregar tarea</button><select id="bank-game" class="control select" aria-label="Filtrar por juego"><option value="">Todos los juegos</option>${data.games.map(x=>`<option value="${html(x.game)}">${html(x.game)}</option>`).join('')}</select>
+    <select id="bank-save-filter" class="control select" aria-label="Filtrar por partida"><option value="">Todas las partidas</option><option value="0">Sin partida asignada</option>${state.bankSaves.map(p=>`<option value="${p.id}">${html(p.game)} · ${html(p.name)}</option>`).join('')}</select>
     <label class="switch"><input id="bank-show-all" type="checkbox" ${state.bankAll?'checked':''}> Mostrar completadas</label></div></div>
     <div id="bank-table"></div><div class="notice"><strong>Lista de tareas:</strong> «Solo Bank» no necesita una entrada en la Pokédex. «En Shiny/Living Dex» identifica un objetivo elegido explícitamente; los contadores de HOME siguen siendo independientes y nunca se suman automáticamente.</div>`;
   $('#bank-game').value=state.bankGame;
-  $('#bank-game').addEventListener('change',e=>{state.bankGame=e.target.value;loadBankTable()});
+  $('#bank-game').addEventListener('change',e=>{state.bankGame=e.target.value;state.bankSaveFilter='';$('#bank-save-filter').value='';loadBankTable()});
+  $('#bank-save-filter').value=state.bankSaveFilter;
+  $('#bank-save-filter').addEventListener('change',e=>{state.bankSaveFilter=e.target.value;loadBankTable()});
   $('#bank-show-all').addEventListener('change',e=>{state.bankAll=e.target.checked;loadBankTable()});
   $('#bank-new-task').addEventListener('click',()=>openBankTask());
   await loadBankTable();
 }
 async function loadBankTable(){
   const query=new URLSearchParams({game:state.bankGame,pending:String(!state.bankAll)});
+  if(state.bankSaveFilter!=='')query.set('save_id',state.bankSaveFilter);
   const result=await request('/api/bank?'+query);
   const root=$('#bank-table');if(!root)return;
   if(!result.items.length){
@@ -228,7 +313,7 @@ async function loadBankTable(){
     return `<div class="panel"><div class="panel-header"><div><h2>${html(game)} <span class="tiny">· ${items.length} tareas</span></h2><div class="tiny">Estado del juego</div></div>
     <div class="game-checks"><label class="toggle-line"><input class="bank-flag" type="checkbox" data-game="${html(game)}" data-field="started" ${status?.started?'checked':''}> Comenzado</label><label class="toggle-line"><input class="bank-flag" type="checkbox" data-game="${html(game)}" data-field="prepared" ${status?.prepared?'checked':''}> Preparado</label></div></div>
     <div class="table-wrap"><table class="data-table"><thead><tr><th>Pokémon</th><th>Relación con Pokédex</th><th>Notas / método</th><th>Objetivo</th><th>Capturados</th><th>En HOME</th><th></th></tr></thead><tbody>
-    ${items.map(t=>`<tr data-bank-id="${t.id}"><td><div class="name-strong">${html(t.pokemon)}</div><div class="row-sub">${html(t.form_name||'Forma base')} · ${t.shiny?'Shiny':'Normal'}${t.ot_exception?' · OT ajeno':''}</div></td>
+    ${items.map(t=>`<tr data-bank-id="${t.id}"><td><div class="name-strong">${html(t.pokemon)}</div><div class="row-sub">${html(t.form_name||'Forma base')} · ${t.shiny?'Shiny':'Normal'}${t.ot_exception?' · OT ajeno':''} · ${t.save_name?html(t.save_name):'Sin partida asignada'}</div></td>
     <td>${bankLinkLabel(t)}</td><td class="muted">${html(t.comments||'—')}</td><td>${t.required}</td><td><input class="tiny-input bank-caught" type="number" min="0" max="${t.required}" value="${t.caught}" aria-label="Capturados ${html(t.pokemon)}"></td>
     <td><input class="tiny-input bank-home" type="number" min="0" max="${t.required}" value="${t.in_home}" aria-label="HOME ${html(t.pokemon)}"></td>
     <td><button class="btn btn-small bank-save" type="button">Guardar</button> <button class="btn btn-small bank-edit" type="button">Editar</button></td></tr>`).join('')}</tbody></table></div></div>`;
@@ -250,10 +335,11 @@ async function loadBankTable(){
 }
 function openBankTask(task=null){
   const editing=Boolean(task);
-  const games=(state.bankGames||[]).map(game=>`<option value="${html(game)}"></option>`).join('');
+  const availableSaves=state.bankSaves.filter(p=>p.game_available||p.id===task?.save_id);
+  const saveOptions=availableSaves.map(p=>`<option value="${p.id}" ${p.id===task?.save_id?'selected':''}>${html(p.game)} · ${html(p.name)}</option>`).join('');
   modal(editing?'Editar tarea de Bank':'Nueva tarea de Bank',
     `<form id="bank-task-form"><div class="form-grid">
-    <div class="field"><label for="bt-game">Juego</label><input id="bt-game" class="control" list="bt-games" maxlength="100" required value="${html(task?.game||'')}"><datalist id="bt-games">${games}</datalist></div>
+    <div class="field"><label for="bt-save">Juego y partida</label><select id="bt-save" class="control" ${editing?'':'required'}><option value="">${editing?'Sin partida asignada (tarea anterior)':'Elegí una partida'}</option>${saveOptions}</select><button id="bt-configure-games" class="btn btn-small" type="button">Configurar partidas</button></div>
     <div class="field"><label for="bt-pokemon">Pokémon</label><input id="bt-pokemon" class="control" maxlength="100" required value="${html(task?.pokemon||'')}"></div>
     <div class="field"><label for="bt-form">Forma (opcional)</label><input id="bt-form" class="control" maxlength="100" value="${html(task?.form_name||'')}"></div>
     <div class="field"><label for="bt-required">Cantidad objetivo</label><input id="bt-required" type="number" class="control" min="1" max="999" required value="${task?.required||1}"></div>
@@ -277,6 +363,7 @@ function openBankTask(task=null){
   function showLink(){fields.classList.toggle('hidden',!linked.checked);}
   linked.addEventListener('change',showLink);showLink();
   $('#bt-cancel').addEventListener('click',closeModal);
+  $('#bt-configure-games').addEventListener('click',()=>{closeModal();go('games');});
   $('#bt-find').addEventListener('click',async()=>{
     const term=$('#bt-link-search').value.trim();
     if(term.length<2){toast('Escribí al menos dos caracteres para buscar');return;}
@@ -309,8 +396,10 @@ function openBankTask(task=null){
   $('#bank-task-form').addEventListener('submit',async event=>{
     event.preventDefault();
     if(linked.checked&&!selection.value){toast('Seleccioná un objetivo o desmarcá el vínculo para usar Solo Bank');return;}
+    const selectedSave=state.bankSaves.find(p=>p.id===Number($('#bt-save').value));
+    if(!editing&&!selectedSave){toast('Elegí una partida desde Juegos y partidas');return;}
     const data={
-      game:$('#bt-game').value.trim(),pokemon:$('#bt-pokemon').value.trim(),
+      game:selectedSave?.game||task?.game||'',save_id:selectedSave?.id||null,pokemon:$('#bt-pokemon').value.trim(),
       form_name:$('#bt-form').value.trim()||null,comments:$('#bt-comments').value.trim(),
       shiny:$('#bt-shiny').checked,ot_exception:$('#bt-ot').checked,
       required:Number($('#bt-required').value),caught:Number($('#bt-caught').value),
@@ -433,10 +522,9 @@ function setupAustinImport(){
   }
 }
 async function renderSettings(){
-  const [games, spriteCache]=await Promise.all([request('/api/games'),request('/api/sprites/cache-status')]);
+  const spriteCache=await request('/api/sprites/cache-status');
   app.innerHTML=head('PREFERENCIAS','Configuración','Elegí tus juegos y guardá una copia portable del progreso.')+
-    `<div class="panel"><div class="panel-header"><h2>Juegos disponibles</h2><span class="tiny">Los cambios se guardan al instante</span></div><p class="description">El catálogo muestra todos los juegos; activá o desactivá aquellos que tenés disponibles. El Shiny Charm se configura por juego (en el futuro, por partida).</p>
-     <div class="game-grid">${games.map(g=>`<div class="game-tile"><div class="game-title">${html(g.name)}</div><div class="game-checks"><label class="toggle-line" title="Juego disponible"><input class="game-check" data-game="${html(g.name)}" data-type="available" type="checkbox" ${g.available?'checked':''}> Disponible</label><label class="toggle-line" title="Shiny Charm"><input class="game-check" data-game="${html(g.name)}" data-type="shiny_charm" type="checkbox" ${g.shiny_charm?'checked':''}> Charm</label></div></div>`).join('')}</div></div>
+    `<div class="panel"><h2>Juegos y partidas</h2><p class="description">Administrá tus juegos y múltiples partidas, con Shiny Charm independiente. Las nuevas tareas Bank seleccionan una de esas partidas.</p><div class="hunt-actions"><button id="go-games" type="button" class="btn btn-primary">Gestionar mis juegos</button></div></div>
      <div class="panel"><h2>Datos y copias de seguridad</h2><p class="description">El archivo JSON incluye objetivos, tareas Bank, cacerías, fases y configuración. Tu base SQLite vive fuera del código.</p>
      <div class="hunt-actions"><a class="btn" href="/api/backup" download="optpoke-backup.json">↓ Exportar respaldo JSON</a><button id="import-backup" class="btn">↑ Importar respaldo JSON</button><input id="backup-input" type="file" accept=".json,application/json" class="hidden"></div>
      <p class="note">Importar un respaldo sustituye el progreso local actual. Exportá uno primero.</p></div>
@@ -454,7 +542,7 @@ async function renderSettings(){
      <p class="description">Las imágenes se descargan únicamente al mostrarlas por primera vez. Después se sirven desde tu computadora, incluso tras reiniciar la aplicación; no se guardan en SQLite ni en los respaldos JSON.</p>
      <div class="kicker">${spriteCache.images.toLocaleString('es-UY')} imágenes · ${(spriteCache.bytes/1048576).toFixed(1)} MB · ${spriteCache.missing} ausencias recordadas</div>
      <p class="note">${spriteCache.offline?'Modo sin conexión activado: no se hacen solicitudes externas.':'Modo normal: solo se consultan fuentes externas cuando falta una imagen en la caché.'} Para iniciar sin ninguna descarga externa: <code>OPTPOKE_SPRITES_OFFLINE=1 python -m uvicorn app.main:app --reload</code>. Las imágenes que aún no estén guardadas mostrarán un marcador.</p></div>`;
-  document.querySelectorAll('.game-check').forEach(el=>el.addEventListener('change',async()=>{try{await patch('/api/games/'+encodeURIComponent(el.dataset.game),{[el.dataset.type]:el.checked});toast('Preferencia guardada')}catch(e){toast(e.message)}}));
+  $('#go-games').addEventListener('click',()=>go('games'));
   setupAustinImport();
   $('#import-backup').addEventListener('click',()=>$('#backup-input').click());
   $('#backup-input').addEventListener('change',async e=>{

@@ -66,7 +66,7 @@ La [guía de auditoría](docs/SPRITES.md) explica cómo revisar las formas y có
 
 Los cambios se implementan en **ramas nuevas creadas desde `develop`** y se proponen mediante PR hacia `develop`, con pruebas en la propia rama. Solo se integra `develop` en `main` para una versión probada y destinada a publicación; ver [Releases](docs/RELEASING.md).
 
-La primera etapa de v0.2 convierte [Plan Bank en una TODO list editable](docs/BANK_TODO.md): se pueden crear, modificar y eliminar tareas, independientes de la Pokédex por defecto. Cada tarea puede vincularse explícitamente a un objetivo Shiny/Living; **el vínculo no sincroniza cantidades de HOME**.
+La v0.2 incorpora [Bank como TODO list editable](docs/BANK_TODO.md), y [Juegos y partidas](docs/GAME_SAVES.md) como catálogo de títulos disponibles con varias partidas independientes por juego. Las tareas nuevas de Bank se asignan a una partida configurada; las anteriores no se borran ni se asocian automáticamente. Los vínculos opcionales con la Pokédex **no sincronizan HOME**. El menú lateral puede plegarse desde la barra superior para ampliar el área de contenido.
 
 ## Desarrollo
 
