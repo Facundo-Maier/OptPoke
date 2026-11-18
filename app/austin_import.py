@@ -28,8 +28,8 @@ def _normalize(text: str | None) -> str:
 
 def _status(value: str | None) -> str | None:
     value = str(value or "").strip().upper()
-    if value == "NOT":
-        return "NOT"
+    if value in {"NOT", "EVO"}:
+        return value
     if value in {"0", "0.0"}:
         return "0"
     if value in {"1", "1.0"}:
@@ -111,12 +111,8 @@ def build_austin_plan(content: bytes, mode: str = "merge", source: str | None = 
                 continue  # generation separators are not Pokémon
             status = _status(row["J"])
             if status is None:
-                if row["J"].strip().upper() == "EVO":
-                    stats["evo_unresolved"] += 1
-                    problems.append(f"{sheet}: EVO sin interpretar, no se modifica: {row.get('H', '?')} / {row.get('L') or 'Forma base'}")
-                else:
-                    stats["other_status"] += 1
-                    problems.append(f"{sheet}: valor de estado desconocido para {row.get('H', '?')}: {row['J'][:25]}")
+                stats["other_status"] += 1
+                problems.append(f"{sheet}: valor de estado desconocido para {row.get('H', '?')}: {row['J'][:25]}")
                 continue
             key = _lookup_key(row, forms)
             if not key or (key, shiny) not in goals:
@@ -132,18 +128,18 @@ def build_austin_plan(content: bytes, mode: str = "merge", source: str | None = 
             goal = goals[identity]
             stats["matched"] += 1
             stats["shiny" if shiny else "normal"] += 1
-            stats[{"0": "obtained", "1": "pending", "NOT": "not_ot"}[status]] += 1
-            updates = {}
+            stats[{"0": "obtained", "1": "pending", "NOT": "not_ot", "EVO": "pending_evolution"}[status]] += 1
+            # Excel is authoritative for the fields represented by each status.
+            # Legacy merge/replace parameters remain accepted with identical semantics.
+            desired = {}
             if status == "0":
-                if goal["in_home"] == 0:
-                    # A checkbox 0 proves at least one Pokémon, not every
-                    # extra copy the user may have added to their target.
-                    updates["in_home"] = 1
-            elif status == "1" and mode == "replace" and goal["in_home"] != 0:
-                updates["in_home"] = 0
-            elif status == "NOT" and not goal["ot_exception"]:
-                # NOT is an OT exception, NOT a synonym for obtained or pending.
-                updates["ot_exception"] = 1
+                desired = {"in_home": 1, "pending_evolution": 0}
+            elif status in {"1", "EVO"}:
+                desired = {"in_home": 0, "pending_evolution": int(status == "EVO")}
+            elif status == "NOT":
+                # No OT contains no ownership or evolution information.
+                desired = {"ot_exception": 1}
+            updates = {field: value for field, value in desired.items() if goal[field] != value}
             if updates:
                 stats["changed"] += 1
                 actions.append({"goal_id": goal["id"], "name": goal["species"] if "species" in goal else forms[key]["species"],
@@ -169,3 +165,4 @@ def apply_austin_plan(plan: dict) -> dict:
             db.execute("UPDATE goals SET " + ", ".join(f"{column}=?" for column in values)
                        + " WHERE id=?", [*values.values(), change["goal_id"]])
     return {"applied": len(plan["changes"]), "counts": plan["counts"], "warnings_total": plan["warnings_total"]}
+

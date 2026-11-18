@@ -96,7 +96,7 @@ def overview():
 
 @app.get("/api/goals")
 def list_goals(kind: Literal["shiny", "normal"] = "shiny", search: str = "",
-               status: Literal["all", "missing", "done", "locked", "ot_exception"] = "all",
+               status: Literal["all", "missing", "done", "locked", "ot_exception", "pending_evolution"] = "all",
                sort: Literal["dex", "name"] = "dex",
                offset: int = Query(0, ge=0), limit: int = Query(72, ge=1, le=250)):
     where = ["g.shiny=?"]
@@ -108,6 +108,7 @@ def list_goals(kind: Literal["shiny", "normal"] = "shiny", search: str = "",
     if status == "done": where.append("g.in_home>=g.target")
     if status == "locked": where.append("g.obtainability='locked'")
     if status == "ot_exception": where.append("g.ot_exception=1")
+    if status == "pending_evolution": where.append("g.pending_evolution=1 AND g.in_home<g.target")
     filter_sql = " AND ".join(where)
     ordering = "f.dex_number, f.form_key" if sort == "dex" else "f.species COLLATE NOCASE, f.form_name"
     with connect() as db:
@@ -123,6 +124,7 @@ class GoalPatch(BaseModel):
     in_home: int | None = Field(None, ge=0, le=999)
     obtainability: Literal["unverified", "obtainable", "locked"] | None = None
     ot_exception: bool | None = None
+    pending_evolution: bool | None = None
 
 
 @app.patch("/api/goals/{goal_id}")
@@ -136,6 +138,8 @@ def update_goal(goal_id: int, patch: GoalPatch):
         target = provided.get("target", current["target"])
         home = provided.get("in_home", current["in_home"])
         if home > target: raise HTTPException(422, "En HOME no puede superar el objetivo")
+        if "pending_evolution" in provided: provided["pending_evolution"] = int(provided["pending_evolution"])
+        if home >= target: provided["pending_evolution"] = 0
         if "ot_exception" in provided: provided["ot_exception"] = int(provided["ot_exception"])
         db.execute("UPDATE goals SET " + ", ".join(f"{field}=?" for field in provided) + " WHERE id=?",
                    [*provided.values(), goal_id])
@@ -356,7 +360,7 @@ class BackupIn(BaseModel):
 def restore_backup(payload: BackupIn):
     # Restore only trusted app-format backups; this replaces user progress.
     writable = {
-        "goals": {"id", "form_key", "shiny", "target", "in_home", "obtainability", "ot_exception"},
+        "goals": {"id", "form_key", "shiny", "target", "in_home", "obtainability", "ot_exception", "pending_evolution"},
         "bank_tasks": {"id", "game", "pokemon", "form_name", "comments", "shiny", "ot_exception", "required", "caught", "in_home", "source_row"},
         "bank_game_status": {"game", "started", "prepared"},
         "hunts": {"id", "pokemon", "game", "method", "probability", "seconds_per_attempt", "attempts", "status", "shiny_found", "unknown_phases", "source", "created_at"},
@@ -369,10 +373,11 @@ def restore_backup(payload: BackupIn):
     for tab, items in payload.data.items():
         for item in items:
             keys = set(item)
-            # v0.1.5 and older exports do not contain the OT column.
-            if tab == "goals" and keys == writable[tab] - {"ot_exception"}:
-                item["ot_exception"] = 0
-            elif keys != writable[tab]:
+            # Additive fields are optional in older version-1 backups.
+            if tab == "goals":
+                for field in ("ot_exception", "pending_evolution"):
+                    item.setdefault(field, 0)
+            if set(item) != writable[tab]:
                 raise HTTPException(422, f"Campos inválidos en {tab}")
     try:
         with connect() as db:
@@ -390,3 +395,4 @@ def restore_backup(payload: BackupIn):
     except sqlite3.IntegrityError as exc:
         raise HTTPException(422, f"Respaldo inconsistente: {exc}") from exc
     return {"restored": True}
+

@@ -20,7 +20,7 @@ def test_separate_shiny_workbook_only_changes_shiny(monkeypatch, local_data):
     rows = rows_for_forms(150, shiny=True)
     rows[0]['J'] = '0'
     rows[1]['J'] = 'NOT'
-    rows[2]['J'] = 'EVO'  # unknown: must not assume obtained/pending
+    rows[2]['J'] = 'EVO'  # target evolution pending; never obtained
     rows.insert(4, {'H': 'Gen', 'V': 'gen', 'J': '1'})  # grouping row
     monkeypatch.setattr(austin_import, 'list_sheet_names', lambda _: {'S-LivingFormLITE'})
     monkeypatch.setattr(austin_import, 'read_sheets', lambda _, want: {'S-LivingFormLITE': rows})
@@ -29,8 +29,8 @@ def test_separate_shiny_workbook_only_changes_shiny(monkeypatch, local_data):
     assert plan['counts']['matched'] >= 100
     assert plan['counts']['obtained'] == 1
     assert plan['counts']['not_ot'] == 1
-    assert plan['counts']['evo_unresolved'] == 1
-    assert plan['warnings_total'] == 1
+    assert plan['counts']['pending_evolution'] == 1
+    assert plan['warnings_total'] == 0
     assert all(change['shiny'] for change in plan['changes'])
     with pytest.raises(ValueError, match='LivingFormLITE'):
         build_austin_plan(b'standalone-shiny', source='normal')
@@ -53,5 +53,6 @@ def test_floette_eternal_flower_is_in_new_catalog(local_data):
         forms = {r['form_key']: dict(r) for r in db.execute('SELECT * FROM pokemon_forms')}
         assert _lookup_key({'H': 'Floette', 'I': '670', 'L': 'Eternal Flower', 'V': 'floette-5'}, forms) == 'floette-5'
         assert db.execute("SELECT COUNT(*) FROM goals WHERE form_key='floette-5'").fetchone()[0] == 2
+
 
 

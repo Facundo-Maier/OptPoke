@@ -60,7 +60,7 @@
           aria-label="Seleccionar ${name}, ${form}, número ${number}">
           <span class="dex-number">${number}</span>
           <span class="dex-sprite">${spriteMarkup(item)}</span>
-          <span class="dex-info"><span class="dex-pokemon" title="${name}">${name}</span><span class="dex-form" title="${form}">${form}</span></span>
+          <span class="dex-info"><span class="dex-pokemon" title="${name}">${name}</span><span class="dex-form" title="${form}">${form}</span>${item.pending_evolution && !done?'<span class="dex-evo-mark">Por evolucionar</span>':''}</span>
         </button>
         <span class="dex-state-cell">${homeControl(item)}</span>
         <span class="dex-ot-cell">${otControl(item)}</span>
@@ -77,3 +77,4 @@
   root.OptPokeDex = {renderRows, labelFor, homeControl, otControl};
   if (typeof module !== 'undefined' && module.exports) module.exports = {renderRows, labelFor, homeControl, otControl};
 })(typeof window !== 'undefined' ? window : globalThis);
+

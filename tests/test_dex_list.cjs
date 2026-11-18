@@ -75,3 +75,16 @@ test('OT exception is a distinct interactive control regardless of HOME or locke
   assert.match(markup,/class="dex-ot-cell"/);
   assert.match(markup,/aria-pressed="true"/);
 });
+
+
+test('EVO is a separate marker and leaves the HOME button pending',()=>{
+  const goal=entry({pending_evolution:1});
+  assert.equal(labelFor(goal),'Pendiente');
+  assert.match(homeControl(goal),/data-toggle-home="1"/);
+  assert.doesNotMatch(homeControl(goal),/Por evolucionar/);
+  assert.match(renderRows([goal],sprite),/class="dex-evo-mark">Por evolucionar/);
+  const done={...goal,in_home:1,pending_evolution:0};
+  assert.equal(labelFor(done),'En HOME');
+  assert.doesNotMatch(renderRows([done],sprite),/dex-evo-mark/);
+  assert.equal(labelFor(entry({target:2,in_home:1,pending_evolution:1})),'Parcial');
+});
