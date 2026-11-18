@@ -66,7 +66,7 @@ La [guía de auditoría](docs/SPRITES.md) explica cómo revisar las formas y có
 
 Los cambios se implementan en **ramas nuevas creadas desde `develop`** y se proponen mediante PR hacia `develop`, con pruebas en la propia rama. Solo se integra `develop` en `main` para una versión probada y destinada a publicación; ver [Releases](docs/RELEASING.md).
 
-La primera etapa de v0.2 añade una [previsualización de coincidencias Bank–Pokédex](docs/BANK_RECONCILIATION.md). Las sugerencias no vinculan ni sincronizan cantidades de HOME.
+La primera etapa de v0.2 convierte [Plan Bank en una TODO list editable](docs/BANK_TODO.md): se pueden crear, modificar y eliminar tareas, independientes de la Pokédex por defecto. Cada tarea puede vincularse explícitamente a un objetivo Shiny/Living; **el vínculo no sincroniza cantidades de HOME**.
 
 ## Desarrollo
 
