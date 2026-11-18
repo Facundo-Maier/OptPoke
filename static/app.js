@@ -1,7 +1,7 @@
 'use strict';
 const $ = (selector, root=document) => root.querySelector(selector);
 const app = $('#app');
-const state = {page:'shiny',search:'',status:'all',sort:'dex',offset:0,limit:72,bankGame:'',bankAll:false,selectedGoalId:null,dexRequestSeq:0};
+const state = {page:'shiny',search:'',status:'all',sort:'dex',offset:0,limit:72,bankGame:'',bankAll:false,bankPreview:null,selectedGoalId:null,dexRequestSeq:0};
 const html = (x) => String(x??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nf = new Intl.NumberFormat('es-UY');
 const percent = n => (Number(n)*100).toLocaleString('es-UY',{maximumFractionDigits:2}) + '%';
@@ -194,13 +194,25 @@ function openGoal(goal){
     catch(error){toast(error.message)}
   });
 }
+function bankSuggestionCell(task){
+  const proposal=state.bankPreview?.[task.id];
+  if(!proposal)return '<span class="tiny muted">Sin analizar</span>';
+  if(proposal.status==='suggested'){
+    const goal=proposal.suggestion;
+    return `<span class="tiny" title="Sugerencia sin confirmar; no sincroniza HOME">Sugerencia: #${String(goal.dex_number).padStart(4,'0')} · ${html(goal.form_name||'Forma base')}</span>`;
+  }
+  if(proposal.status==='ambiguous')
+    return '<span class="tiny muted">Varias formas · revisar</span>';
+  return '<span class="tiny muted">Sin coincidencia exacta</span>';
+}
 async function renderBank(){
-  const [data,summary]=await Promise.all([request('/api/bank?pending=false'),request('/api/overview')]);
+  const [data,summary,preview]=await Promise.all([request('/api/bank?pending=false'),request('/api/overview'),request('/api/bank/reconciliation')]);
+  state.bankPreview=Object.fromEntries(preview.items.map(item=>[item.task_id,item]));
   app.innerHTML=head('FECHA LÍMITE · 26 FEB 2027','Plan Pokémon Bank','Todo lo que querés completar antes del cierre. Un objetivo termina al llegar a HOME.',`<span class="pill">◴ Transferencias</span>`)+
     `<div class="stat-grid">${stat('Ejemplares en HOME',summary.bank.done,summary.bank.total,'De los ejemplares planificados')}${stat('Tareas completadas',data.items.filter(x=>x.in_home>=x.required).length,data.items.length,'Por Pokémon y juego')}${stat('Tareas pendientes',summary.bank.open_tasks,data.items.length,'Se muestran sin completar')}</div>
     <div class="toolbar"><div class="toolbar-left"><select id="bank-game" class="control select" aria-label="Filtrar por juego"><option value="">Todos los juegos</option>${data.games.map(x=>`<option value="${html(x.game)}">${html(x.game)}</option>`).join('')}</select>
     <label class="switch"><input id="bank-show-all" type="checkbox" ${state.bankAll?'checked':''}> Mostrar completadas</label></div></div>
-    <div id="bank-table"></div><div class="notice"><strong>Importante:</strong> los cambios de Bank y de la Pokédex no se actualizan mutuamente todavía; falta reconciliar cada tarea con una forma concreta de la colección.</div>`;
+    <div class="notice"><strong>Coincidencias propuestas (sin confirmar):</strong> ${nf.format(preview.counts.suggested)} únicas · ${nf.format(preview.counts.ambiguous)} ambiguas · ${nf.format(preview.counts.unmatched)} sin correspondencia. Es una vista previa: no transfiere ejemplares ni modifica HOME. Las tareas de Bank y la Pokédex siguen siendo independientes.</div><div id="bank-table"></div>`;
   $('#bank-game').value=state.bankGame;
   $('#bank-game').addEventListener('change',e=>{state.bankGame=e.target.value;loadBankTable()});
   $('#bank-show-all').addEventListener('change',e=>{state.bankAll=e.target.checked;loadBankTable()});
@@ -216,9 +228,9 @@ async function loadBankTable(){
     const status=result.games.find(x=>x.game===game);
     return `<div class="panel"><div class="panel-header"><div><h2>${html(game)} <span class="tiny">· ${items.length} tareas</span></h2><div class="tiny">Estado del juego</div></div>
     <div class="game-checks"><label class="toggle-line"><input class="bank-flag" type="checkbox" data-game="${html(game)}" data-field="started" ${status?.started?'checked':''}> Comenzado</label><label class="toggle-line"><input class="bank-flag" type="checkbox" data-game="${html(game)}" data-field="prepared" ${status?.prepared?'checked':''}> Preparado</label></div></div>
-    <div class="table-wrap"><table class="data-table"><thead><tr><th>Pokémon</th><th>Notas / método</th><th>Objetivo</th><th>Capturados</th><th>En HOME</th><th></th></tr></thead><tbody>
+    <div class="table-wrap"><table class="data-table"><thead><tr><th>Pokémon</th><th>Forma propuesta</th><th>Notas / método</th><th>Objetivo</th><th>Capturados</th><th>En HOME</th><th></th></tr></thead><tbody>
     ${items.map(t=>`<tr data-bank-id="${t.id}"><td><div class="name-strong">${html(t.pokemon)}</div><div class="row-sub">${html(t.form_name||'Forma base')} · ${t.shiny?'Shiny':'Normal'}${t.ot_exception?' · OT de evento':''}</div></td>
-    <td class="muted">${html(t.comments||'—')}</td><td>${t.required}</td><td><input class="tiny-input bank-caught" type="number" min="0" max="${t.required}" value="${t.caught}" aria-label="Capturados ${html(t.pokemon)}"></td>
+    <td>${bankSuggestionCell(t)}</td><td class="muted">${html(t.comments||'—')}</td><td>${t.required}</td><td><input class="tiny-input bank-caught" type="number" min="0" max="${t.required}" value="${t.caught}" aria-label="Capturados ${html(t.pokemon)}"></td>
     <td><input class="tiny-input bank-home" type="number" min="0" max="${t.required}" value="${t.in_home}" aria-label="HOME ${html(t.pokemon)}"></td>
     <td><button class="btn btn-small bank-save" type="button">Guardar</button></td></tr>`).join('')}</tbody></table></div></div>`;
   }).join('');
