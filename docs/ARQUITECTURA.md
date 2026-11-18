@@ -53,7 +53,7 @@ erDiagram
 | Directorio | Responsabilidad |
 | --- | --- |
 | `app/db.py` | Esquema SQLite y catálogo inicial |
-| `app/bank_reconcile.py` | Previsualización conservadora de coincidencias entre tareas Bank y objetivos, sin escrituras |
+| `app/bank_links.py` | Normalización para validar vínculos explícitos Bank → objetivo de Pokédex |
 | `app/sprite_cache.py` | Descarga autorizada bajo demanda, caché persistente, ausencias y modo offline |
 | `app/main.py` | API HTTP, validaciones y persistencia |
 | `app/math_utils.py` | Fórmulas de probabilidades |
@@ -78,11 +78,11 @@ erDiagram
 
 ## Primera etapa de integración de Bank (v0.2 en desarrollo)
 
-`app/bank_reconcile.py` compara tareas existentes con objetivos de la Pokédex (especie, forma y shiny), sin modificar ni vincular registros. Se presentan únicamente **propuestas** en la API `GET /api/bank/reconciliation` y en la interfaz. Las formas sin identificación explícita que puedan significar varias variantes quedan ambiguas, y las no incluidas en el catálogo no se inventan. El progreso de HOME sigue independiente hasta definir una reconciliación confirmada y sin doble conteo. Ver [BANK_RECONCILIATION.md](BANK_RECONCILIATION.md).
+Bank funciona como una TODO list editable mediante `GET/POST /api/bank` y `PATCH/DELETE /api/bank/{task_id}`. El campo opcional `goal_id` apunta a un objetivo de la Pokédex solo si el usuario lo selecciona explícitamente; `NULL` significa «Solo Bank», incluso para tareas importadas antiguamente. La interfaz permite buscar objetivos con `GET /api/bank/goal-options`, sin asociar automáticamente especies ni formas. `in_home` de Bank y de la Pokédex siguen independientes y no se suman. Ver [BANK_TODO.md](BANK_TODO.md).
 
 ## Decisiones futuras
 
-1. Vincular automáticamente cada tarea Bank con `form_key` y con ejemplares concretos.
+1. Mantener las tareas Bank independientes salvo vínculo explícito; cualquier sincronización futura necesita primero identificar ejemplares concretos y evitar doble conteo.
 2. Conservar la semántica ya implementada de `EVO` como evolución pendiente independiente del progreso en HOME.
 3. Completar los sprites de formas que no tienen una imagen correcta y, cuando sea necesario, revisar los registros de ausencia guardados.
 4. Crear catálogo versionado de juegos, métodos, probabilidades, restricciones de OT y fuentes verificables.
