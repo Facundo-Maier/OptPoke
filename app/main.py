@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 
 from .db import ROOT, connect, initialize, seed_locked_shinies
 from .math_utils import cumulative_probability
+from .bank_reconcile import build_bank_reconciliation_preview
 from .austin_import import build_austin_plan, apply_austin_plan
 from .sprite_cache import (
     cached_image, cached_variety, cache_status, InvalidSpriteSource,
@@ -174,6 +175,11 @@ async def apply_austin(request: Request, digest: str, mode: Literal["merge", "re
     if digest != plan["digest"]:
         raise HTTPException(409, "El archivo cambió desde la vista previa; volvé a revisarlo")
     return apply_austin_plan(plan)
+
+
+@app.get("/api/bank/reconciliation")
+def preview_bank_reconciliation():
+    return build_bank_reconciliation_preview()
 
 
 @app.get("/api/bank")
