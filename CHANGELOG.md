@@ -1,5 +1,7 @@
 ## Sin publicar
 
+- Importación AustinJohn: los estados 0/1/EVO del Excel actualizan HOME y EVO aunque hubiera progreso anterior. Vista previa y confirmación explican las reducciones de cantidad; se elimina el selector de modos. NOT conserva su significado independiente.
+
 - EVO importa la evolución pendiente en la fila objetivo sin sumar HOME. Incluye edición, filtro, migración aditiva y compatibilidad con respaldos anteriores.
 - Paginación en la cabecera persistente junto a un buscador compacto; referencias de assets actualizadas para renovar la caché del navegador.
 

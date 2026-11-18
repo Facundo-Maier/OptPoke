@@ -129,29 +129,17 @@ def build_austin_plan(content: bytes, mode: str = "merge", source: str | None = 
             stats["matched"] += 1
             stats["shiny" if shiny else "normal"] += 1
             stats[{"0": "obtained", "1": "pending", "NOT": "not_ot", "EVO": "pending_evolution"}[status]] += 1
-            updates = {}
+            # Excel is authoritative for the fields represented by each status.
+            # Legacy merge/replace parameters remain accepted with identical semantics.
+            desired = {}
             if status == "0":
-                if goal["in_home"] == 0:
-                    # A checkbox 0 proves at least one Pokémon, not every
-                    # extra copy the user may have added to their target.
-                    updates["in_home"] = 1
-            elif status == "1" and mode == "replace" and goal["in_home"] != 0:
-                updates["in_home"] = 0
-            elif status == "NOT" and not goal["ot_exception"]:
-                # NOT is an OT exception, NOT a synonym for obtained or pending.
-                updates["ot_exception"] = 1
-            # EVO belongs to the target row (e.g. Alakazam), never its precursor.
-            # Merge preserves existing HOME counts; replace explicitly trusts Excel.
-            if status == "EVO" and mode == "replace" and goal["in_home"]:
-                updates["in_home"] = 0
-            home = updates.get("in_home", goal["in_home"])
-            evolution = goal["pending_evolution"]
-            if status == "EVO" and home < goal["target"]:
-                evolution = 1
-            elif home >= goal["target"] or (mode == "replace" and status in {"0", "1"}):
-                evolution = 0
-            if evolution != goal["pending_evolution"]:
-                updates["pending_evolution"] = evolution
+                desired = {"in_home": 1, "pending_evolution": 0}
+            elif status in {"1", "EVO"}:
+                desired = {"in_home": 0, "pending_evolution": int(status == "EVO")}
+            elif status == "NOT":
+                # No OT contains no ownership or evolution information.
+                desired = {"ot_exception": 1}
+            updates = {field: value for field, value in desired.items() if goal[field] != value}
             if updates:
                 stats["changed"] += 1
                 actions.append({"goal_id": goal["id"], "name": goal["species"] if "species" in goal else forms[key]["species"],

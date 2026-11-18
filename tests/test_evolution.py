@@ -28,9 +28,9 @@ def test_evolution_api_backup_and_completion(client):
 
 
 @pytest.mark.parametrize('mode,home,expected_home,expected_evo', [
-    ('merge', 0, 0, 1), ('merge', 1, 1, 0), ('replace', 1, 0, 1),
+    ('merge', 0, 0, 1), ('merge', 1, 0, 1), ('replace', 1, 0, 1),
 ])
-def test_evo_import_targets_alakazam_preserves_merge(client, monkeypatch, mode, home, expected_home, expected_evo):
+def test_evo_import_overrides_previous_home_on_target(client, monkeypatch, mode, home, expected_home, expected_evo):
     rows = rows_for_forms(150, shiny=True)
     row = next(r for r in rows if r['V'] == 'alakazam')
     row['J'] = 'EVO'
@@ -47,3 +47,18 @@ def test_evo_import_targets_alakazam_preserves_merge(client, monkeypatch, mode, 
     with connect() as db:
         assert db.execute("SELECT pending_evolution FROM goals WHERE form_key='kadabra' AND shiny=1").fetchone()[0] == 0
     assert austin_import.build_austin_plan(b'fictional', mode, 'shiny')['counts'].get('changed', 0) == 0
+
+@pytest.mark.parametrize('status,expected_home', [('0', 1), ('1', 0)])
+def test_excel_clears_previous_evo_and_sets_exact_home(client, monkeypatch, status, expected_home):
+    rows = rows_for_forms(150, shiny=True)
+    next(r for r in rows if r['V'] == 'alakazam')['J'] = status
+    monkeypatch.setattr(austin_import, 'list_sheet_names', lambda _: {'S-LivingFormLITE'})
+    monkeypatch.setattr(austin_import, 'read_sheets', lambda *_: {'S-LivingFormLITE': rows})
+    g = goal(client)
+    client.patch(f"/api/goals/{g['id']}", json={'target': 3, 'in_home': 2, 'pending_evolution': True})
+    plan = austin_import.build_austin_plan(b'fictional')
+    assert goal(client)['in_home'] == 2
+    austin_import.apply_austin_plan(plan)
+    result = goal(client)
+    assert (result['in_home'], result['pending_evolution'], result['target']) == (expected_home, 0, 3)
+    assert austin_import.build_austin_plan(b'fictional')['counts'].get('changed', 0) == 0

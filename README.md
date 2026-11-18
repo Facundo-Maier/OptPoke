@@ -42,7 +42,7 @@ en una sesión que se vaya a mostrar a otras personas.
 ## Progreso y actualización
 
 Importación XLSX desde Configuración, con vista previa y confirmación separada
-para Shiny y Living. `NOT` indica OT ajeno, no captura; `EVO` marca «Por evolucionar» en la fila del objetivo (Alakazam si tenés Kadabra). No suma HOME: combinar conserva cantidades existentes; reemplazar pone HOME en cero para EVO. La marca puede editarse y filtrarse, y se retira al completar el objetivo.
+para Shiny y Living. `NOT` indica OT ajeno, no captura; `EVO` marca «Por evolucionar» en la fila del objetivo (Alakazam si tenés Kadabra). No suma HOME: el Excel prevalece sobre el estado anterior: 0 pone un ejemplar en HOME; 1 y EVO ponen cero. NOT solo marca OT ajeno; no informa captura. Los objetivos ausentes del archivo no cambian. La marca puede editarse y filtrarse, y se retira al completar el objetivo.
 La exportación JSON permite respaldar progreso; restaurar reemplaza los datos.
 Guardá los respaldos y Excel fuera del repositorio.
 

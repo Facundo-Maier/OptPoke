@@ -290,7 +290,6 @@ async function renderCompare(){
     <div class="notice"><strong>No se muestran rankings inventados.</strong> Se habilitarán cuando los métodos estén identificados y verificados, con fecha y fuente.</div></div>`;
 }
 function setupAustinImport(){
-  const modeInput=$('#austin-mode');
   const configs=[
     {source:'shiny',input:$('#austin-shiny-file'),button:$('#austin-shiny-preview'),results:$('#austin-shiny-results'),label:'Shiny Dex'},
     {source:'normal',input:$('#austin-normal-file'),button:$('#austin-normal-preview'),results:$('#austin-normal-results'),label:'Living Dex'},
@@ -306,9 +305,8 @@ function setupAustinImport(){
     let reviewed=null;
     function reset(){reviewed=null;conf.results.innerHTML='';}
     conf.input.addEventListener('change',reset);
-    modeInput.addEventListener('change',reset);
     conf.button.addEventListener('click',async()=>{
-      const file=conf.input.files[0],mode=modeInput.value;
+      const file=conf.input.files[0],mode='replace';
       if(!file){toast(`Seleccioná el Excel de ${conf.label}`);return;}
       if(!/\.xlsx$/i.test(file.name)){toast('Debe ser un archivo .xlsx');return;}
       reset();conf.button.disabled=true;
@@ -317,7 +315,7 @@ function setupAustinImport(){
         const data=await sendAustin(file,'preview',mode,conf.source);
         reviewed={file,mode,digest:data.digest};
         const c=data.counts;
-        const changes=data.changes.map(x=>`<li>${html(x.name)} · ${html(x.form)}: ${x.source==='NOT'?'Marcar OT ajeno':`${x.before_home} → ${x.after_home} en HOME`}</li>`).join('');
+        const changes=data.changes.map(x=>`<li>${html(x.name)} · ${html(x.form)}: ${x.source==='NOT'?'Marcar OT ajeno':`${x.before_home} → ${x.after_home} en HOME · ${x.source==='EVO'?'Marcar por evolucionar':'Sin marca EVO'}`}</li>`).join('');
         conf.results.innerHTML=`<div class="austin-summary"><strong>${html(conf.label)} · ${nf.format(c.matched||0)} Pokémon reconocidos</strong>
           <p>${nf.format(c.obtained||0)} con 0 (obtenidos) · ${nf.format(c.pending||0)} con 1 (pendientes) · ${nf.format(c.not_ot||0)} con NOT (OT ajeno)</p>
           ${c.pending_evolution?`<p class="austin-warning">${nf.format(c.pending_evolution)} objetivos por evolucionar (EVO); no suman ejemplares en HOME.</p>`:''}
@@ -327,9 +325,7 @@ function setupAustinImport(){
           <button class="btn btn-primary" id="austin-${conf.source}-apply" type="button" ${c.changed?'':'disabled'}>Confirmar ${nf.format(c.changed||0)} cambios en ${html(conf.label)}</button>`;
         conf.results.querySelector(`#austin-${conf.source}-apply`)?.addEventListener('click',async()=>{
           if(!reviewed)return;
-          const message=reviewed.mode==='replace'?
-            `Se igualarán los 0/1 del Excel de ${conf.label}. Los pendientes podrían quitar progreso existente. ¿Continuar?`:
-            `Se sumarán los obtenidos y las marcas OT de ${conf.label}, sin borrar progreso existente. ¿Continuar?`;
+          const message=`Se aplicarán los estados del Excel de ${conf.label}: 0 = un ejemplar en HOME; 1 y EVO = cero en HOME. Esto puede reducir cantidades anteriores. NOT solo marca OT ajeno. ¿Continuar?`;
           if(!confirm(message))return;
           const button=conf.results.querySelector(`#austin-${conf.source}-apply`);
           button.disabled=true;
@@ -355,14 +351,13 @@ async function renderSettings(){
      <p class="note">Importar un respaldo sustituye el progreso local actual. Exportá uno primero.</p></div>
      <div class="panel austin-import"><h2>Importar progreso desde AustinJohn</h2>
      <p class="description">Ahora se admiten <strong>dos archivos Excel separados</strong>. Cada uno importa únicamente su colección. La vista previa no escribe nada en la base de datos.</p>
-     <div class="austin-import-actions"><label class="austin-mode-label" for="austin-mode">Modo</label><select class="control" id="austin-mode"><option value="merge">Conservar mi progreso: sumar obtenidos</option><option value="replace">Igualar los 0/1 del Excel</option></select></div>
      <div class="austin-source"><h3>Shiny Dex</h3><p class="note">Excel de <strong>Home Shiny Dex Organizer</strong>, hoja <code>S-LivingFormLITE</code>.</p>
        <div class="austin-import-actions"><input id="austin-shiny-file" class="control" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-label="Seleccionar Excel Shiny de AustinJohn">
        <button id="austin-shiny-preview" class="btn btn-primary" type="button">Revisar Shiny</button></div><div id="austin-shiny-results" role="status" aria-live="polite"></div></div>
      <div class="austin-source"><h3>Living Dex</h3><p class="note">Excel de <strong>Home Living Dex Organizer</strong>, hoja <code>LivingFormLITE</code>.</p>
        <div class="austin-import-actions"><input id="austin-normal-file" class="control" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-label="Seleccionar Excel Living de AustinJohn">
        <button id="austin-normal-preview" class="btn btn-primary" type="button">Revisar Living</button></div><div id="austin-normal-results" role="status" aria-live="polite"></div></div>
-     <p class="note"><strong>Estados:</strong> 0 = obtenido, 1 = pendiente, <strong>NOT = No OT</strong> (sin asumir captura). <strong>EVO</strong> marca la evolución objetivo como «Por evolucionar» (ej.: Alakazam si tenés Kadabra). Combinar conserva HOME; reemplazar pone HOME en cero para EVO. Se ignoran los separadores «Gen». Los archivos originales permanecen intactos.</p>
+     <p class="note"><strong>Estados:</strong> 0 = obtenido, 1 = pendiente, <strong>NOT = No OT</strong> (sin asumir captura). <strong>EVO</strong> marca la evolución objetivo como «Por evolucionar» (ej.: Alakazam si tenés Kadabra). El Excel actualiza los estados anteriores: 0 pone un ejemplar en HOME; 1 y EVO ponen cero. Los objetivos ausentes del archivo no cambian. Se ignoran los separadores «Gen». Los archivos originales permanecen intactos.</p>
      </div>
      <div class="panel"><h2>Sprites almacenados localmente</h2>
      <p class="description">Las imágenes se descargan únicamente al mostrarlas por primera vez. Después se sirven desde tu computadora, incluso tras reiniciar la aplicación; no se guardan en SQLite ni en los respaldos JSON.</p>

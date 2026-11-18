@@ -30,14 +30,14 @@ def test_not_means_no_ot_not_obtained(monkeypatch, local_data):
     plan=build_austin_plan(b'valid-byte-fixture',mode='merge')
     austin=next(x for x in plan['changes'] if x['goal_id']==shiny['id'])
     assert austin['updates']=={'ot_exception':1}
-    assert not any(x['goal_id']==second['id'] for x in plan['changes'])
+    assert next(x for x in plan['changes'] if x['goal_id']==second['id'])['after_home'] == 0
     apply_austin_plan(plan)
     with connect() as db:
         a=db.execute('SELECT in_home,ot_exception FROM goals WHERE id=?',(shiny['id'],)).fetchone()
         b=db.execute('SELECT in_home FROM goals WHERE id=?',(normal['id'],)).fetchone()
         c=db.execute('SELECT in_home FROM goals WHERE id=?',(second['id'],)).fetchone()
     assert (a['in_home'],a['ot_exception'])==(0,1)
-    assert b['in_home']==1 and c['in_home']==1
+    assert b['in_home']==1 and c['in_home']==0
 
 
 def _first_forms(n):
@@ -113,3 +113,4 @@ def test_austin_zero_adds_only_one_copy_even_when_target_is_three(monkeypatch,lo
     with connect() as db:
         rec=db.execute('SELECT target,in_home FROM goals WHERE id=?',(g['id'],)).fetchone()
     assert (rec['target'],rec['in_home'])==(3,1)
+
