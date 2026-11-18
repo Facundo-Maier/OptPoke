@@ -252,7 +252,7 @@ class BankPatch(BaseModel):
 
 def _bank_task_values(db, values: dict):
     """Enforce consistency even when a linked task is edited later."""
-    from .bank_reconcile import _normalized, _form
+    from .bank_links import _normalized, _form
 
     values = dict(values)
     values["game"] = values["game"].strip()
