@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS bank_tasks (
     caught INTEGER NOT NULL DEFAULT 0 CHECK (caught >= 0),
     in_home INTEGER NOT NULL DEFAULT 0 CHECK (in_home >= 0),
     source_row INTEGER,
+    goal_id INTEGER REFERENCES goals(id) ON DELETE SET NULL,
     UNIQUE(game, source_row)
 );
 CREATE TABLE IF NOT EXISTS hunts (
@@ -182,6 +183,11 @@ def initialize() -> None:
             [(key, 1) for key in catalog["shiny_keys"]] +
             [(key, 0) for key in catalog["normal_keys"]],
         )
+        # Bank tasks imported before v0.2 remain independent (NULL goal_id).
+        task_fields = {row["name"] for row in db.execute("PRAGMA table_info(bank_tasks)")}
+        if "goal_id" not in task_fields:
+            db.execute("ALTER TABLE bank_tasks ADD COLUMN goal_id INTEGER REFERENCES goals(id) ON DELETE SET NULL")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_bank_goal ON bank_tasks(goal_id)")
         db.executemany("INSERT OR IGNORE INTO games(name) VALUES (?)", [(g,) for g in GAMES])
         seed_locked_shinies(db)
 
