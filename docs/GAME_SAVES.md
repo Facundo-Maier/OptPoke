@@ -1,6 +1,6 @@
 # Mis juegos y partidas — v0.2 en desarrollo
 
-La sección **Juegos y partidas** contiene un catálogo predefinido de juegos de Pokémon.
+La sección **Juegos y partidas** contiene un catálogo predefinido de juegos de Pokémon, ordenado por generación (de la I a la IX), no alfabéticamente. El mismo orden se aplica a los selectores de Bank.
 No se escribe el nombre de cada juego manualmente: se marca **Disponible** y se
 agregan una o más **partidas** con nombres distintos (por ejemplo, Principal,
 Segunda partida), cada una con su estado de **Shiny Charm** independiente.

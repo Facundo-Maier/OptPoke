@@ -153,3 +153,24 @@ def test_legacy_customized_games_and_saves_are_preserved(local_data):
     with connect() as db:
         assert db.execute("SELECT COUNT(*) FROM games WHERE available=1").fetchone()[0] == len(GAMES)
         assert db.execute("SELECT name FROM game_saves").fetchone()[0] == "Mi partida"
+
+def test_game_catalog_and_bank_selectors_use_generation_order(client):
+    # Source-of-truth GAMES groups generations I through IX.
+    catalog = client.get("/api/games").json()
+    assert [row["name"] for row in catalog] == GAMES
+    for game in ("Scarlet", "Crystal", "Emerald"):
+        assert client.patch(f"/api/games/{game}", json={"available": True}).status_code == 200
+        response = new_save(client, game, "Partida principal")
+        assert response.status_code == 201, response.text
+        task = client.post("/api/bank", json={
+            "game": game, "save_id": response.json()["id"],
+            "pokemon": "Pikachu", "required": 1
+        })
+        assert task.status_code == 201, task.text
+    saves = client.get("/api/game-saves").json()["items"]
+    assert [row["game"] for row in saves] == ["Crystal", "Emerald", "Scarlet"]
+    bank = client.get("/api/bank?pending=false").json()
+    assert [row["game"] for row in bank["items"]] == ["Crystal", "Emerald", "Scarlet"]
+    relevant = [row["game"] for row in bank["games"]
+                if row["game"] in {"Scarlet", "Crystal", "Emerald"}]
+    assert relevant == ["Crystal", "Emerald", "Scarlet"]
