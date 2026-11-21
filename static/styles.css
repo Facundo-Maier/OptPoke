@@ -440,3 +440,26 @@ button.dex-status:hover{background:#38583c;border-color:#729457}
   .shell:not(.sidebar-collapsed) .sidebar-backdrop{display:block;position:fixed;inset:0;z-index:41;width:100%;height:100%;border:0;background:rgba(0,0,0,.65)}
 }
 @media(prefers-reduced-motion:reduce){.sidebar{transition:none}}
+
+/* v0.2: the menu control lives on the left edge, outside the non-sticky topbar. */
+.shell{padding-left:38px}
+.sidebar-edge-toggle{
+  position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:60;
+  display:grid;place-items:center;width:38px;height:76px;
+  background:transparent;border:0;border-radius:0;box-shadow:none;
+  color:var(--accent);font-size:23px;line-height:1;
+}
+.sidebar-edge-toggle:hover{background:transparent;color:#d7f9c5}
+.sidebar-edge-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:-3px}
+@media(max-width:900px){
+  .shell:not(.sidebar-collapsed) .sidebar{left:38px;width:min(285px,calc(100vw - 38px))!important}
+}
+/* Visible but intentionally inactive until game-specific encounter data is verified. */
+.dex-games-filter-planned{
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  padding:5px 12px 7px;color:var(--muted);font-size:11px;
+  border-top:1px solid var(--border-soft);
+}
+.dex-games-filter-planned label{display:inline-flex;align-items:center;gap:7px;cursor:not-allowed}
+.dex-games-filter-planned input{accent-color:var(--accent);cursor:not-allowed}
+.dex-games-filter-planned span{color:var(--subtle);font-size:10px}

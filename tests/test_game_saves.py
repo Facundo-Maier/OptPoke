@@ -1,5 +1,5 @@
 """Game catalog/save profiles are independent and preserve legacy Bank rows."""
-from app.db import connect, initialize
+from app.db import GAMES, connect, initialize
 
 
 def new_save(client, game="Crystal", name="Principal", shiny_charm=False):
@@ -10,6 +10,8 @@ def new_save(client, game="Crystal", name="Principal", shiny_charm=False):
 def test_catalog_only_and_distinct_saves(client):
     names = {game["name"] for game in client.get("/api/games").json()}
     assert {"Crystal", "Emerald", "Scarlet"}.issubset(names)
+    assert all(not item["available"] for item in client.get("/api/games").json())
+    assert client.patch("/api/games/Crystal", json={"available": True}).status_code == 200
     assert new_save(client, "Crystal", "Principal", True).status_code == 201
     second = new_save(client, "Crystal", "Otra partida", False)
     assert second.status_code == 201, second.text
@@ -28,6 +30,7 @@ def test_catalog_only_and_distinct_saves(client):
 
 
 def test_bank_uses_save_game_and_filters_per_save(client):
+    assert client.patch("/api/games/Crystal", json={"available": True}).status_code == 200
     first = new_save(client, "Crystal", "Principal", True).json()
     second = new_save(client, "Crystal", "Secundaria").json()
     a = client.post("/api/bank", json={
@@ -54,6 +57,7 @@ def test_legacy_task_survives_and_can_be_assigned(client):
             "VALUES('Emerald','Rayquaza',1,22)").lastrowid
     before = client.get("/api/bank?pending=false").json()["items"][0]
     assert before["save_id"] is None and before["game"] == "Emerald"
+    assert client.patch("/api/games/Emerald", json={"available": True}).status_code == 200
     created = new_save(client, "Emerald", "Mi partida").json()
     assert client.patch(f"/api/bank/{task_id}", json={"save_id": created["id"]}).status_code == 200
     after = client.get("/api/bank?pending=false").json()["items"][0]
@@ -69,6 +73,7 @@ def test_reassignment_to_another_game_clears_old_import_row(client):
         id_ = db.execute(
             "INSERT INTO bank_tasks(game,pokemon,required,source_row) "
             "VALUES('Crystal','Celebi',1,8)").lastrowid
+    assert client.patch("/api/games/Emerald", json={"available": True}).status_code == 200
     save = new_save(client, "Emerald", "Nueva partida").json()
     updated = client.patch(f"/api/bank/{id_}", json={"save_id": save["id"]})
     assert updated.status_code == 200, updated.text
@@ -77,6 +82,7 @@ def test_reassignment_to_another_game_clears_old_import_row(client):
 
 
 def test_backup_preserves_saves_and_accepts_legacy_backup(client):
+    assert client.patch("/api/games/Crystal", json={"available": True}).status_code == 200
     save = new_save(client, "Crystal", "Principal").json()
     task = client.post("/api/bank", json={
         "game": "Crystal", "save_id": save["id"], "pokemon": "Celebi"})
@@ -116,3 +122,34 @@ def test_legacy_schema_migrates_additively(local_data):
         entry = db.execute("SELECT game,pokemon,source_row,save_id FROM bank_tasks").fetchone()
         assert tuple(entry) == ("Crystal", "Celebi", 44, None)
     initialize()
+
+
+def test_one_time_legacy_defaults_reset_only_when_untouched(local_data):
+    with connect() as db:
+        db.execute("UPDATE games SET available=1")
+        db.execute("DELETE FROM import_history WHERE digest='games-unselected-by-default-v1'")
+    initialize()
+    with connect() as db:
+        assert db.execute("SELECT SUM(available) FROM games").fetchone()[0] == 0
+        db.execute("UPDATE games SET available=1 WHERE name='Emerald'")
+    initialize()
+    with connect() as db:
+        assert db.execute("SELECT available FROM games WHERE name='Emerald'").fetchone()[0] == 1
+
+
+def test_legacy_customized_games_and_saves_are_preserved(local_data):
+    with connect() as db:
+        db.execute("UPDATE games SET available=1 WHERE name='Crystal'")
+        db.execute("UPDATE games SET available=0 WHERE name='Emerald'")
+        db.execute("DELETE FROM import_history WHERE digest='games-unselected-by-default-v1'")
+    initialize()
+    with connect() as db:
+        assert db.execute("SELECT available FROM games WHERE name='Crystal'").fetchone()[0] == 1
+        assert db.execute("SELECT available FROM games WHERE name='Emerald'").fetchone()[0] == 0
+        db.execute("UPDATE games SET available=1")
+        db.execute("INSERT INTO game_saves(game,name) VALUES('Crystal','Mi partida')")
+        db.execute("DELETE FROM import_history WHERE digest='games-unselected-by-default-v1'")
+    initialize()
+    with connect() as db:
+        assert db.execute("SELECT COUNT(*) FROM games WHERE available=1").fetchone()[0] == len(GAMES)
+        assert db.execute("SELECT name FROM game_saves").fetchone()[0] == "Mi partida"
