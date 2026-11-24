@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS hunt_phases (
 );
 CREATE TABLE IF NOT EXISTS games (
     name TEXT PRIMARY KEY,
-    available INTEGER NOT NULL DEFAULT 1 CHECK (available IN (0,1)),
+    available INTEGER NOT NULL DEFAULT 0 CHECK (available IN (0,1)),
     shiny_charm INTEGER NOT NULL DEFAULT 0 CHECK (shiny_charm IN (0,1))
 );
 CREATE TABLE IF NOT EXISTS game_saves (
@@ -200,5 +200,20 @@ def initialize() -> None:
             db.execute("ALTER TABLE bank_tasks ADD COLUMN save_id INTEGER REFERENCES game_saves(id) ON DELETE RESTRICT")
         db.execute("CREATE INDEX IF NOT EXISTS idx_bank_save ON bank_tasks(save_id)")
         db.executemany("INSERT OR IGNORE INTO games(name) VALUES (?)", [(g,) for g in GAMES])
+        # The previous default marked every game available, even if the user
+        # never changed that setting. Reset only this recognizable untouched
+        # state, once; preserve all personalized choices and save profiles.
+        marker = "games-unselected-by-default-v1"
+        if not db.execute("SELECT 1 FROM import_history WHERE digest=?", (marker,)).fetchone():
+            stats = db.execute(
+                "SELECT COUNT(*) AS n, SUM(available) AS enabled, "
+                "COALESCE(SUM(shiny_charm),0) AS charms FROM games"
+            ).fetchone()
+            save_count = db.execute("SELECT COUNT(*) FROM game_saves").fetchone()[0]
+            if (stats["n"] == len(GAMES) and stats["enabled"] == stats["n"]
+                    and stats["charms"] == 0 and save_count == 0):
+                db.execute("UPDATE games SET available=0")
+            db.execute("INSERT INTO import_history(digest,kind) VALUES(?,?)",
+                       (marker, "games-defaults-migration"))
         seed_locked_shinies(db)
 

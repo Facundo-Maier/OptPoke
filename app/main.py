@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from .db import ROOT, connect, initialize, seed_locked_shinies
+from .db import GAMES, ROOT, connect, initialize, seed_locked_shinies
 from .math_utils import cumulative_probability
 from .austin_import import build_austin_plan, apply_austin_plan
 from .sprite_cache import (
@@ -228,6 +228,10 @@ def list_bank(game: str = "", search: str = "", pending: bool = True, save_id: i
                 WHERE """ + " AND ".join(conditions) +
             " ORDER BY t.game,t.source_row,t.id", params))
         statuses = rows(db.execute("SELECT * FROM bank_game_status ORDER BY game"))
+    # Preserve the SQL order of tasks inside each game while grouping games
+    # consistently with the catalog and save selectors.
+    items.sort(key=lambda item: (GAME_ORDER.get(item["game"], len(GAMES)), item["game"]))
+    statuses.sort(key=lambda item: (GAME_ORDER.get(item["game"], len(GAMES)), item["game"]))
     return {"items": items, "games": statuses}
 
 
@@ -448,10 +452,15 @@ def list_phases(hunt_id: int):
         return rows(db.execute("SELECT * FROM hunt_phases WHERE hunt_id=? ORDER BY at_attempt", (hunt_id,)))
 
 
+# Catalog order is grouped by generation (I–IX), not alphabetically.
+GAME_ORDER = {game: position for position, game in enumerate(GAMES)}
+
+
 @app.get("/api/games")
 def list_games():
     with connect() as db:
-        return rows(db.execute("SELECT * FROM games ORDER BY name"))
+        games = rows(db.execute("SELECT * FROM games ORDER BY name"))
+    return sorted(games, key=lambda item: (GAME_ORDER.get(item["name"], len(GAMES)), item["name"]))
 
 
 class GamePatch(BaseModel):
@@ -481,8 +490,10 @@ def list_game_saves(available_only: bool = False):
                     FROM game_saves sv JOIN games g ON g.name=sv.game"""
         if available_only:
             query += " WHERE g.available=1"
-        query += " ORDER BY sv.game,sv.name COLLATE NOCASE,sv.id"
-        return {"items": rows(db.execute(query))}
+        saves = rows(db.execute(query))
+    return {"items": sorted(saves, key=lambda item: (
+        GAME_ORDER.get(item["game"], len(GAMES)), item["game"],
+        item["name"].casefold(), item["id"]))}
 
 
 class GameSaveNew(BaseModel):

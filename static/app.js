@@ -96,7 +96,11 @@ async function renderDex(){
   app.innerHTML=`<div class="dex-sticky-header">`+dexHeader(result,isShiny)+
     `<div class="dex-controls"><div class="search-wrap"><svg class="dex-search-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input class="control" id="dex-search" aria-label="Buscar Pokémon" placeholder="Pokémon, forma o número..." value="${html(state.search)}"></div>
        <select id="dex-filter" aria-label="Filtrar por estado" class="control select"><option value="all">Todos</option><option value="missing">Pendientes</option><option value="done">En HOME</option><option value="locked">Con candado</option><option value="ot_exception">OT ajeno</option><option value="pending_evolution">Por evolucionar</option></select>
-       <select id="dex-sort" aria-label="Ordenar Pokémon" class="control select"><option value="dex">Nº Pokédex</option><option value="name">Nombre A–Z</option></select><nav id="dex-pagination" class="pagination" aria-label="Páginas de la Pokédex"></nav></div></div>
+       <select id="dex-sort" aria-label="Ordenar Pokémon" class="control select"><option value="dex">Nº Pokédex</option><option value="name">Nombre A–Z</option></select><nav id="dex-pagination" class="pagination" aria-label="Páginas de la Pokédex"></nav></div>
+       <div class="dex-games-filter-planned" title="Próximamente: requiere catalogar qué especies y formas son obtenibles en cada juego.">
+         <label><input id="dex-available-games-only" type="checkbox" disabled aria-describedby="dex-games-filter-note"> Solo mostrar Pokémon obtenibles en mis juegos</label>
+         <span id="dex-games-filter-note">Próximamente · filtro sin implementar</span>
+       </div></div>
      <div class="pokedex-shell"><aside id="dex-spotlight" class="dex-spotlight" aria-label="Vista del Pokémon seleccionado"><div id="dex-spotlight-content" class="dex-spotlight-inner"><div class="dex-spotlight-empty">Elegí un Pokémon del listado</div></div></aside>
      <section class="dex-index" aria-label="Índice de la Pokédex"><div class="dex-index-title"><span>Índice ${isShiny?'shiny':'normal'}</span><span class="dex-index-hint">Seleccioná una especie o cambiá su estado directamente</span></div>
      <div id="dex-container"></div></section></div>

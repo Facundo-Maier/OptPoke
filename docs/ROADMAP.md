@@ -30,10 +30,13 @@ La v1.0 no exige cubrir todos los juegos, especies, formas o métodos posibles, 
 
 **Objetivo:** gestionar la colección y las tareas Bank sin perder información ni confundir capturas y transferencias con el progreso de la Pokédex.
 
-- [x] Menú lateral plegable para aprovechar el ancho del contenido.
-- [x] Catálogo de juegos disponibles con varias partidas por juego y Shiny Charm independiente por partida.
+- [x] Menú lateral plegable con control fijo en el borde izquierdo, disponible incluso al desplazarse.
+- [x] Catálogo de juegos disponibles con varias partidas por juego y Shiny Charm independiente por partida, desmarcados de forma predeterminada.
 - [x] Selector de partidas configuradas al agregar tareas Bank; las anteriores se conservan sin partida asignada.
 - [x] Migración SQLite y respaldo compatibles con perfiles nuevos y datos anteriores.
+- [x] Mostrar en ambas Pokédex la opción de filtro por juegos disponibles como **próximamente** (deshabilitada).
+- [ ] Implementar el filtro con datos verificados de disponibilidad por especie y forma en cada juego.
+
 - [x] Bank como lista de tareas editable: agregar, modificar, eliminar tareas y mantener cantidades de captura/HOME.
 - [x] Distinguir tareas «Solo Bank» de tareas asociadas explícitamente a Shiny/Living Dex, con vínculo reversible.
 - [x] Migración aditiva y respaldo compatible con tareas existentes sin vínculo.

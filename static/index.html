@@ -6,10 +6,11 @@
   <meta name="theme-color" content="#111c1a"/>
   <meta name="description" content="Organizador local de Living Shiny Dex, cacerías y Pokémon Bank."/>
   <title>Opt. Poke | Living Shiny Dex</title>
-  <link rel="stylesheet" href="/static/styles.css?v=games-profiles-v02-1"/>
+  <link rel="stylesheet" href="/static/styles.css?v=games-default-menu-dex-v02-1"/>
 </head>
 <body>
 <div class="shell sidebar-collapsed" id="app-shell">
+  <button type="button" id="sidebar-toggle" class="sidebar-toggle sidebar-edge-toggle" aria-label="Abrir menú" aria-controls="sidebar" aria-expanded="false" title="Abrir o cerrar menú"><span aria-hidden="true">☰</span></button>
   <aside class="sidebar" id="sidebar" aria-label="Menú principal" inert>
     <div class="brand"><span class="brand-mark">✦</span><div><div class="brand-name">Opt<span>.</span> Poke</div><div class="brand-sub">LIVING DEX MANAGER</div></div></div>
     <div class="nav-label">COLECCIÓN</div>
@@ -32,15 +33,15 @@
   </aside>
   <button class="sidebar-backdrop" id="sidebar-backdrop" type="button" aria-label="Cerrar el menú" tabindex="-1"></button>
   <div class="main-area">
-    <header class="topbar"><div class="topbar-left"><button type="button" id="sidebar-toggle" class="sidebar-toggle" aria-label="Abrir menú" aria-controls="sidebar" aria-expanded="false"><span aria-hidden="true">☰</span></button><div class="breadcrumb"><span class="crumb-root">COLECCIÓN</span><span class="crumb-arrow">/</span><span id="breadcrumb-current">Shiny Dex</span></div></div><div class="top-right"><span class="top-status"><span class="status-dot"></span> Local</span><span class="avatar">OP</span></div></header>
+    <header class="topbar"><div class="topbar-left"><div class="breadcrumb"><span class="crumb-root">COLECCIÓN</span><span class="crumb-arrow">/</span><span id="breadcrumb-current">Shiny Dex</span></div></div><div class="top-right"><span class="top-status"><span class="status-dot"></span> Local</span><span class="avatar">OP</span></div></header>
     <main id="app" tabindex="-1"><div class="loading">Preparando colección…</div></main>
   </div>
 </div>
 <div id="modal-layer" class="modal-layer hidden" role="presentation"><div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-head"><h2 id="modal-title">Editar</h2><button id="modal-close" class="icon-btn" aria-label="Cerrar">×</button></div><div id="modal-content"></div></div></div>
 <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
-<script src="/static/sprites.js?v=games-profiles-v02-1" defer></script>
-<script src="/static/dex-list.js?v=games-profiles-v02-1" defer></script>
-<script src="/static/app.js?v=games-profiles-v02-1" defer></script>
+<script src="/static/sprites.js?v=games-default-menu-dex-v02-1" defer></script>
+<script src="/static/dex-list.js?v=games-default-menu-dex-v02-1" defer></script>
+<script src="/static/app.js?v=games-default-menu-dex-v02-1" defer></script>
 </body>
 </html>
 

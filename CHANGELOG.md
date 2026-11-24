@@ -1,5 +1,12 @@
 ## Sin publicar
 
+### Ajustes de navegación, juegos y filtro futuro
+
+- Juegos no disponibles por defecto en instalaciones nuevas; migración única del estado antiguo únicamente cuando no había personalizaciones ni partidas guardadas.
+- Control del menú fijo en el borde izquierdo, sin tarjeta ni dependencia de la barra superior: accesible aun al desplazarse por la Pokédex.
+- Shiny y Living Dex muestran una opción deshabilitada para «Solo mostrar Pokémon obtenibles en mis juegos», indicando que el filtro todavía está pendiente de los datos verificados de disponibilidad.
+
+
 ### Juegos y partidas; navegación plegable
 
 - Menú lateral desplegable desde la barra superior, cerrado de forma predeterminada para liberar el ancho central y con preferencia de apertura guardada en el navegador.
