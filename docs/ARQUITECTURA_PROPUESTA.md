@@ -78,6 +78,30 @@ tests/                             # Pruebas por comportamiento
 
 Este árbol identifica destinos, no exige dividir de inmediato cada archivo pequeño. Las vistas JavaScript se organizarán por función y utilidades compartidas en una etapa propia, sin cambiar la interfaz visual ni añadir compilación por esta decisión. La revisión visual del producto sigue prevista para v0.6.
 
+## Contratos para entender el código
+
+Cada función con nombre que se reorganice llevará una descripción de su contrato **en el mismo cambio**, proporcional a su complejidad: una frase para las simples y más detalle para las que coordinan datos o tienen efectos. Se usarán anotaciones de tipos y docstrings en Python; JSDoc para funciones JavaScript con nombre. Los contratos de rutas públicas, operaciones de aplicación, reglas, repositorios e importadores deben indicar lo que otra parte del proyecto necesita saber:
+
+- **Propósito y entradas:** qué representa cada parámetro cuando el nombre y el tipo no bastan.
+- **Resultado y condiciones:** qué devuelve y qué restricciones garantiza (por ejemplo, crédito limitado por objetivo u OT elegible).
+- **Efectos:** qué tablas, archivos, cachés o estado de interfaz modifica. En operaciones compuestas, quién abre la transacción y si la función realiza commit.
+- **Errores y casos límite:** qué entradas rechaza o qué pasa cuando falta un objetivo, una partida o una fuente de imagen.
+
+Ejemplo de contrato para la operación delicada; el nombre y la firma definitivos se fijarán al extraerla:
+
+```python
+def reconcile_bank_home(db, task_id: int, previous_goal_id: int | None = None) -> None:
+    """Actualiza el crédito de una tarea y el HOME de los objetivos afectados.
+
+    Usa la transacción abierta por el caso de uso; no hace commit.
+    Recalcula el objetivo anterior al cambiar o quitar un vínculo.
+    Las transferencias sin vínculo u OT elegible aportan cero.
+    No modifica las cantidades capturadas ni transferidas de la tarea.
+    """
+```
+
+Un comentario dentro de la función explicará **por qué** existe una excepción o compatibilidad histórica; el docstring explicará el contrato. Las funciones auxiliares evidentes pueden tener un contrato de una sola frase; no necesitan párrafos repetitivos. Al revisar cada PR, los contratos deberán coincidir con el comportamiento conservado y con las pruebas de esa operación.
+
 ## Operación delicada: Bank → HOME
 
 `app/bank/home_reconciliation.py` será el dueño de la conciliación. La invocarán las operaciones que crean, modifican, desvinculan o eliminan tareas Bank; también las que cambian el OT propio posible o el progreso manual de un objetivo. La importación AustinJohn seguirá pudiendo sobrescribir las filas incluidas y reiniciar los créditos de Bank correspondientes, sin borrar las tareas.
@@ -105,4 +129,4 @@ Durante esta reorganización se mantienen las URL, cuerpos y códigos de respues
 4. Extraer Pokédex y Bank, y trasladar la conciliación como una sola operación transaccional. Comprobar cambios de OT, importaciones y correcciones o eliminación de tareas.
 5. Revisar la organización JavaScript en una etapa independiente; mantener la revisión visual para v0.6.
 
-Cada etapa irá en una rama y PR propios hacia `develop`, con pruebas pertinentes y revisión del diff. **El PR quedará abierto para que el propietario decida su integración; no se realizará ningún merge a `develop` desde este trabajo.** Hasta que una etapa se integre, los documentos de arquitectura actual y propuesta se mantendrán separados.
+Cada etapa irá en una rama y PR propios hacia `develop`, con contratos y pruebas pertinentes y revisión del diff. **El PR quedará abierto para que el propietario decida su integración; no se realizará ningún merge a `develop` desde este trabajo.** Hasta que una etapa se integre, los documentos de arquitectura actual y propuesta se mantendrán separados.
