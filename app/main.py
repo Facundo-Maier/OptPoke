@@ -125,6 +125,47 @@ class GoalPatch(BaseModel):
     obtainability: Literal["unverified", "obtainable", "locked"] | None = None
     ot_exception: bool | None = None
     pending_evolution: bool | None = None
+    own_ot_obtainability: Literal["unverified", "obtainable", "unobtainable"] | None = None
+
+
+def _recalculate_goal_home(db, goal_id: int):
+    """Manual baseline plus credited Bank transfers, with a target cap.
+
+    Linked Bank tasks can outnumber a goal's target, but never create
+    extra specimens in the Dex. All changes run within the caller's transaction.
+    """
+    goal = db.execute("SELECT id,target,manual_home FROM goals WHERE id=?", (goal_id,)).fetchone()
+    if not goal:
+        return
+    credited = db.execute(
+        "SELECT COALESCE(SUM(synced_home),0) FROM bank_tasks WHERE goal_id=?",
+        (goal_id,)).fetchone()[0]
+    home = min(goal["target"], goal["manual_home"] + credited)
+    db.execute(
+        "UPDATE goals SET in_home=?,pending_evolution=CASE WHEN ?>=target THEN 0 ELSE pending_evolution END "
+        "WHERE id=?", (home, home, goal_id))
+
+
+def _bank_credit(db, task: dict) -> int:
+    """Only transfers with a declared OT origin are Dex-eligible."""
+    if task["goal_id"] is None:
+        return 0
+    if task["ot_origin"] == "own":
+        return task["in_home"]
+    if task["ot_origin"] == "other":
+        status = db.execute("SELECT own_ot_obtainability FROM goals WHERE id=?",
+                            (task["goal_id"],)).fetchone()
+        if status and status["own_ot_obtainability"] == "unobtainable":
+            return task["in_home"]
+    return 0
+
+
+def _update_bank_credit(db, task_id: int, old_goal_id: int | None = None):
+    task = dict(db.execute("SELECT * FROM bank_tasks WHERE id=?", (task_id,)).fetchone())
+    new_credit = _bank_credit(db, task)
+    db.execute("UPDATE bank_tasks SET synced_home=? WHERE id=?", (new_credit, task_id))
+    for goal_id in {old_goal_id, task["goal_id"]} - {None}:
+        _recalculate_goal_home(db, goal_id)
 
 
 @app.patch("/api/goals/{goal_id}")
@@ -138,11 +179,27 @@ def update_goal(goal_id: int, patch: GoalPatch):
         target = provided.get("target", current["target"])
         home = provided.get("in_home", current["in_home"])
         if home > target: raise HTTPException(422, "En HOME no puede superar el objetivo")
+        synced = db.execute("SELECT COALESCE(SUM(synced_home),0) FROM bank_tasks WHERE goal_id=?",
+                            (goal_id,)).fetchone()[0]
+        if "in_home" in provided:
+            if home != current["in_home"]:
+                if home < min(target, synced):
+                    raise HTTPException(
+                        422, "Hay transferencias sincronizadas desde Bank; corregí primero esas tareas")
+                provided["manual_home"] = max(0, home - synced)
+            del provided["in_home"]
         if "pending_evolution" in provided: provided["pending_evolution"] = int(provided["pending_evolution"])
-        if home >= target: provided["pending_evolution"] = 0
         if "ot_exception" in provided: provided["ot_exception"] = int(provided["ot_exception"])
-        db.execute("UPDATE goals SET " + ", ".join(f"{field}=?" for field in provided) + " WHERE id=?",
-                   [*provided.values(), goal_id])
+        # Preserve manually set counts independently of OT flags and shiny locks.
+        if provided:
+            db.execute("UPDATE goals SET " + ", ".join(f"{field}=?" for field in provided) + " WHERE id=?",
+                       [*provided.values(), goal_id])
+        if "own_ot_obtainability" in provided:
+            for task in db.execute("SELECT id FROM bank_tasks WHERE goal_id=?", (goal_id,)).fetchall():
+                data = dict(db.execute("SELECT * FROM bank_tasks WHERE id=?", (task["id"],)).fetchone())
+                db.execute("UPDATE bank_tasks SET synced_home=? WHERE id=?",
+                           (_bank_credit(db, data), task["id"]))
+        _recalculate_goal_home(db, goal_id)
         return dict(db.execute("SELECT * FROM goals WHERE id=?", (goal_id,)).fetchone())
 
 
@@ -247,6 +304,7 @@ class BankTaskCreate(BaseModel):
     in_home: int = Field(default=0, ge=0, le=999)
     goal_id: int | None = Field(default=None, ge=1)
     save_id: int | None = Field(default=None, ge=1)
+    ot_origin: Literal["unspecified", "own", "other"] = "unspecified"
 
 
 class BankPatch(BaseModel):
@@ -261,6 +319,7 @@ class BankPatch(BaseModel):
     in_home: int | None = Field(default=None, ge=0, le=999)
     goal_id: int | None = Field(default=None, ge=1)
     save_id: int | None = Field(default=None, ge=1)
+    ot_origin: Literal["unspecified", "own", "other"] | None = None
 
 
 def _bank_task_values(db, values: dict):
@@ -284,7 +343,9 @@ def _bank_task_values(db, values: dict):
     if not (0 <= values["in_home"] <= values["caught"] <= values["required"]):
         raise HTTPException(422, "Debe cumplirse: en HOME ≤ capturados ≤ requeridos")
     values["shiny"] = int(values["shiny"])
-    values["ot_exception"] = int(values["ot_exception"])
+    # Old clients/backup imports may still supply NOT as a boolean.
+    # The explicit origin takes precedence; unspecified stays truly unknown.
+    values["ot_exception"] = int(values["ot_origin"] == "other")
     if values["goal_id"] is not None:
         goal = db.execute(
             "SELECT g.shiny,f.species,f.form_name FROM goals g "
@@ -302,7 +363,10 @@ def _bank_task_values(db, values: dict):
 @app.post("/api/bank", status_code=201)
 def create_bank_task(data: BankTaskCreate):
     with connect() as db:
-        values = _bank_task_values(db, data.model_dump())
+        input_values = data.model_dump()
+        if input_values["ot_origin"] == "unspecified" and input_values["ot_exception"]:
+            input_values["ot_origin"] = "other"  # Legacy POST payload.
+        values = _bank_task_values(db, input_values)
         if values["save_id"] is not None:
             enabled = db.execute(
                 "SELECT g.available FROM game_saves s JOIN games g ON g.name=s.game WHERE s.id=?",
@@ -315,6 +379,7 @@ def create_bank_task(data: BankTaskCreate):
             "INSERT INTO bank_tasks(" + ",".join(columns) + ") VALUES (" +
             ",".join("?" for _ in columns) + ")",
             [values[col] for col in columns])
+        _update_bank_credit(db, cur.lastrowid)
         return dict(db.execute("SELECT * FROM bank_tasks WHERE id=?", (cur.lastrowid,)).fetchone())
 
 
@@ -330,8 +395,10 @@ def update_bank(task_id: int, patch: BankPatch):
         if any(v is None for key, v in provided.items() if key not in {"goal_id", "form_name", "save_id"}):
             raise HTTPException(422, "Valor nulo no permitido")
         fields = ("game", "pokemon", "form_name", "comments", "shiny", "ot_exception",
-                  "required", "caught", "in_home", "goal_id", "save_id")
+                  "required", "caught", "in_home", "goal_id", "save_id", "ot_origin")
         combined = {key: provided.get(key, current[key]) for key in fields}
+        if "ot_exception" in provided and "ot_origin" not in provided:
+            combined["ot_origin"] = "other" if provided["ot_exception"] else "unspecified"
         normalized = _bank_task_values(db, combined)
         if normalized["game"] != current["game"] and current["source_row"] is not None:
             # The old import row is not valid provenance for a different game.
@@ -340,15 +407,19 @@ def update_bank(task_id: int, patch: BankPatch):
         db.execute("UPDATE bank_tasks SET " +
                    ", ".join(f"{field}=?" for field in fields) + " WHERE id=?",
                    [normalized[key] for key in fields] + [task_id])
+        _update_bank_credit(db, task_id, current["goal_id"])
         return dict(db.execute("SELECT * FROM bank_tasks WHERE id=?", (task_id,)).fetchone())
 
 
 @app.delete("/api/bank/{task_id}", status_code=204)
 def delete_bank_task(task_id: int):
     with connect() as db:
-        result = db.execute("DELETE FROM bank_tasks WHERE id=?", (task_id,))
-        if result.rowcount == 0:
+        task = db.execute("SELECT goal_id FROM bank_tasks WHERE id=?", (task_id,)).fetchone()
+        if not task:
             raise HTTPException(404, "Tarea no encontrada")
+        db.execute("DELETE FROM bank_tasks WHERE id=?", (task_id,))
+        if task["goal_id"] is not None:
+            _recalculate_goal_home(db, task["goal_id"])
     return Response(status_code=204)
 
 
@@ -582,8 +653,8 @@ class BackupIn(BaseModel):
 def restore_backup(payload: BackupIn):
     # Restore only trusted app-format backups; this replaces user progress.
     writable = {
-        "goals": {"id", "form_key", "shiny", "target", "in_home", "obtainability", "ot_exception", "pending_evolution"},
-        "bank_tasks": {"id", "game", "pokemon", "form_name", "comments", "shiny", "ot_exception", "required", "caught", "in_home", "source_row", "goal_id", "save_id"},
+        "goals": {"id", "form_key", "shiny", "target", "in_home", "obtainability", "ot_exception", "pending_evolution", "manual_home", "own_ot_obtainability"},
+        "bank_tasks": {"id", "game", "pokemon", "form_name", "comments", "shiny", "ot_exception", "required", "caught", "in_home", "source_row", "goal_id", "save_id", "ot_origin", "synced_home"},
         "bank_game_status": {"game", "started", "prepared"},
         "hunts": {"id", "pokemon", "game", "method", "probability", "seconds_per_attempt", "attempts", "status", "shiny_found", "unknown_phases", "source", "created_at"},
         "hunt_phases": {"id", "hunt_id", "at_attempt", "note"},
@@ -603,9 +674,13 @@ def restore_backup(payload: BackupIn):
             if tab == "goals":
                 for field in ("ot_exception", "pending_evolution"):
                     item.setdefault(field, 0)
+                item.setdefault("own_ot_obtainability", "unverified")
+                item.setdefault("manual_home", item["in_home"])
             if tab == "bank_tasks":
                 item.setdefault("goal_id", None)
                 item.setdefault("save_id", None)
+                item.setdefault("ot_origin", "other" if item.get("ot_exception") else "unspecified")
+                item.setdefault("synced_home", 0)
             if set(item) != writable[tab]:
                 raise HTTPException(422, f"Campos inválidos en {tab}")
     try:

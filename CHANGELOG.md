@@ -1,5 +1,13 @@
 ## Sin publicar
 
+### Conciliación Bank → HOME y OT separados
+
+- «En Pokédex» ahora indica vínculos opcionales a Shiny/Living Dex.
+- Disponibilidad de OT propio (Sin verificar/Sí/No) independiente de NOT; OT de tarea Bank (Sin indicar/Propio/Ajeno).
+- Transferencias con OT elegible acreditan HOME una sola vez; capturas no suman; correcciones y varias tareas por objetivo se reconcilian hasta el objetivo.
+- Migraciones aditivas con progreso anterior conservado y backups compatibles; ningún registro antiguo se acredita retroactivamente.
+
+
 ### Ajustes de navegación, juegos y filtro futuro
 
 - Juegos no disponibles por defecto en instalaciones nuevas; migración única del estado antiguo únicamente cuando no había personalizaciones ni partidas guardadas.

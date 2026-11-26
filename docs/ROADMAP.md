@@ -43,10 +43,12 @@ La v1.0 no exige cubrir todos los juegos, especies, formas o métodos posibles, 
 - [x] EVO: evolución objetivo pendiente, con importación, edición y filtro; independiente de HOME.
 - [x] Paginación completa en la cabecera fija junto al buscador compacto.
 - [ ] Cerrar y probar el seguimiento de tareas y transferencias por juego y partida, incluidas las tareas anteriores sin partida.
-- [ ] Aclarar en interfaz y documentación que `goals.in_home` representa el progreso de la colección y `bank_tasks.in_home` el avance de una tarea. Un vínculo no suma ni sincroniza automáticamente ambas cantidades.
+- [x] Separar disponibilidad de OT propio de la marca NOT/OT ajeno y del OT de cada tarea.
+- [x] Conciliar transferencias declaradas Bank→HOME de tareas vinculadas con OT elegible, evitando duplicados y con corrección de tareas.
+- [ ] Revisar visualmente los cambios con datos locales antes del merge.
 - [ ] Verificar con datos sintéticos las migraciones y el ciclo exportar → restaurar, y probar manualmente los recorridos principales antes de publicar v0.2.
 
-La sincronización automática de ejemplares concretos queda fuera de este hito y de la v1.0. Si se plantea en el futuro, requerirá una identidad por ejemplar y una regla explícita para evitar el doble conteo. La opción de filtrar la Pokédex por Pokémon obtenibles en los juegos disponibles también requiere datos verificados y se aborda en v0.4.
+La conciliación actual es de cantidades declaradas por tarea. La sincronización real de ejemplares concretos y partidas sigue fuera de v1.0: necesitará una identidad por ejemplar y datos de juego verificados. La opción de filtrar la Pokédex por Pokémon obtenibles en los juegos disponibles también requiere datos verificados y se aborda en v0.4.
 
 ## v0.3 — Cacerías avanzadas
 

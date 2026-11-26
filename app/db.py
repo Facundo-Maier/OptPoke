@@ -49,6 +49,9 @@ CREATE TABLE IF NOT EXISTS goals (
     shiny INTEGER NOT NULL CHECK (shiny IN (0,1)),
     target INTEGER NOT NULL DEFAULT 1 CHECK (target >= 1),
     in_home INTEGER NOT NULL DEFAULT 0 CHECK (in_home >= 0),
+    manual_home INTEGER NOT NULL DEFAULT 0 CHECK (manual_home >= 0),
+    own_ot_obtainability TEXT NOT NULL DEFAULT 'unverified'
+        CHECK (own_ot_obtainability IN ('unverified','obtainable','unobtainable')),
     obtainability TEXT NOT NULL DEFAULT 'unverified'
         CHECK (obtainability IN ('unverified','obtainable','locked')),
     ot_exception INTEGER NOT NULL DEFAULT 0 CHECK (ot_exception IN (0,1)),
@@ -74,6 +77,9 @@ CREATE TABLE IF NOT EXISTS bank_tasks (
     source_row INTEGER,
     goal_id INTEGER REFERENCES goals(id) ON DELETE SET NULL,
     save_id INTEGER REFERENCES game_saves(id) ON DELETE RESTRICT,
+    ot_origin TEXT NOT NULL DEFAULT 'unspecified'
+        CHECK (ot_origin IN ('unspecified','own','other')),
+    synced_home INTEGER NOT NULL DEFAULT 0 CHECK (synced_home >= 0),
     UNIQUE(game, source_row)
 );
 CREATE TABLE IF NOT EXISTS hunts (
@@ -180,6 +186,12 @@ def initialize() -> None:
         fields = {row["name"] for row in db.execute("PRAGMA table_info(goals)")}
         if "pending_evolution" not in fields:
             db.execute("ALTER TABLE goals ADD COLUMN pending_evolution INTEGER NOT NULL DEFAULT 0 CHECK (pending_evolution IN (0,1))")
+        if "own_ot_obtainability" not in fields:
+            db.execute("ALTER TABLE goals ADD COLUMN own_ot_obtainability TEXT NOT NULL DEFAULT 'unverified' CHECK (own_ot_obtainability IN ('unverified','obtainable','unobtainable'))")
+        if "manual_home" not in fields:
+            # Existing Dex progress becomes the manual baseline; never infer Bank credits.
+            db.execute("ALTER TABLE goals ADD COLUMN manual_home INTEGER NOT NULL DEFAULT 0 CHECK (manual_home >= 0)")
+            db.execute("UPDATE goals SET manual_home=in_home")
         db.executemany(
             """INSERT OR IGNORE INTO pokemon_forms
                (form_key, dex_number, species, form_name, source_form, source_variant)
@@ -198,6 +210,12 @@ def initialize() -> None:
         db.execute("CREATE INDEX IF NOT EXISTS idx_bank_goal ON bank_tasks(goal_id)")
         if "save_id" not in task_fields:
             db.execute("ALTER TABLE bank_tasks ADD COLUMN save_id INTEGER REFERENCES game_saves(id) ON DELETE RESTRICT")
+        if "ot_origin" not in task_fields:
+            db.execute("ALTER TABLE bank_tasks ADD COLUMN ot_origin TEXT NOT NULL DEFAULT 'unspecified' CHECK (ot_origin IN ('unspecified','own','other'))")
+            db.execute("UPDATE bank_tasks SET ot_origin='other' WHERE ot_exception=1")
+        if "synced_home" not in task_fields:
+            # Old tasks (even linked/completed ones) must not be counted retroactively.
+            db.execute("ALTER TABLE bank_tasks ADD COLUMN synced_home INTEGER NOT NULL DEFAULT 0 CHECK (synced_home >= 0)")
         db.execute("CREATE INDEX IF NOT EXISTS idx_bank_save ON bank_tasks(save_id)")
         db.executemany("INSERT OR IGNORE INTO games(name) VALUES (?)", [(g,) for g in GAMES])
         # The previous default marked every game available, even if the user

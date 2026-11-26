@@ -204,12 +204,17 @@ function openGoal(goal){
   <div class="field"><label for="g-home">Ejemplares en HOME</label><input id="g-home" class="control" type="number" min="0" max="999" value="${goal.in_home}" required></div>
   <div class="field full"><label for="g-lock">Disponibilidad de shiny / forma</label><select id="g-lock" class="control"><option value="unverified">Sin verificar</option><option value="obtainable">Obtenible</option><option value="locked">🔒 Bloqueado actualmente</option></select></div></div>
   <label class="dex-ot-field"><input type="checkbox" id="g-evo" ${goal.pending_evolution?'checked':''}><span><strong>Por evolucionar (EVO)</strong><small>Tengo un ejemplar previo para obtener esta evolución. No suma ejemplares en HOME; se retira al completar el objetivo.</small></span></label>
-  <label class="dex-ot-field"><input type="checkbox" id="g-ot" ${goal.ot_exception?'checked':''}><span><strong>Solo obtenible sin mi OT</strong><small>Marca independiente del candado. Se aplica a esta forma, shiny o normal, por separado.</small></span></label>
-  <p class="note">El candado es editable. La marca OT se gestiona manualmente; no se asignan excepciones automáticamente.</p><div class="form-actions"><button type="button" class="btn" id="cancel-goal">Cancelar</button><button type="submit" class="btn btn-primary">Guardar cambios</button></div></form>`);
+  <div class="field"><label for="g-own-ot">¿Se puede obtener con mi OT?</label><select id="g-own-ot" class="control">
+    <option value="unverified">Sin verificar</option>
+    <option value="obtainable">Sí, obtenible con mi OT</option>
+    <option value="unobtainable">No obtenible con mi OT</option></select></div>
+  <label class="dex-ot-field"><input type="checkbox" id="g-ot" ${goal.ot_exception?'checked':''}><span><strong>Ejemplar de OT ajeno (NOT)</strong><small>Marca independiente de si lo tenés o no en HOME. No significa que esté obtenido.</small></span></label>
+  <p class="note">La disponibilidad con OT propio se indica manualmente por ahora. No es lo mismo que el candado de shiny ni que el OT del ejemplar.</p><div class="form-actions"><button type="button" class="btn" id="cancel-goal">Cancelar</button><button type="submit" class="btn btn-primary">Guardar cambios</button></div></form>`);
   $('#g-lock').value=goal.obtainability;
+  $('#g-own-ot').value=goal.own_ot_obtainability||'unverified';
   $('#cancel-goal').addEventListener('click',closeModal);
   $('#goal-form').addEventListener('submit',async e=>{
-    e.preventDefault();try{await patch('/api/goals/'+goal.id,{target:Number($('#g-target').value),in_home:Number($('#g-home').value),obtainability:$('#g-lock').value,ot_exception:$('#g-ot').checked,pending_evolution:$('#g-evo').checked});closeModal();toast('Objetivo guardado');await renderDex();}
+    e.preventDefault();try{await patch('/api/goals/'+goal.id,{target:Number($('#g-target').value),in_home:Number($('#g-home').value),obtainability:$('#g-lock').value,ot_exception:$('#g-ot').checked,own_ot_obtainability:$('#g-own-ot').value,pending_evolution:$('#g-evo').checked});closeModal();toast('Objetivo guardado');await renderDex();}
     catch(error){toast(error.message)}
   });
 }
@@ -281,9 +286,9 @@ function openGameSave(game,save=null){
 }
 
 function bankLinkLabel(task){
-  if(!task.goal_id)return '<span class="tiny muted">Solo Bank</span>';
+  if(!task.goal_id)return '<span class="tiny muted">Solo Bank · Sin vínculo con la Dex</span>';
   const form=task.linked_form_name||'Forma base';
-  return `<span class="tiny" title="Vínculo explícito; no sincroniza automáticamente HOME">En ${task.linked_shiny?'Shiny':'Living'} Dex · #${String(task.linked_dex_number).padStart(4,'0')} · ${html(form)}</span>`;
+  return `<span class="tiny" title="Vínculo elegido explícitamente">Vinculada a ${task.linked_shiny?'Shiny':'Living'} Dex · #${String(task.linked_dex_number).padStart(4,'0')} · ${html(form)}<small style="display:block">Contabilizados en Dex desde esta tarea: ${Number(task.synced_home||0)}</small></span>`;
 }
 async function renderBank(){
   const [data,summary,saveResult]=await Promise.all([request('/api/bank?pending=false'),request('/api/overview'),request('/api/game-saves')]);
@@ -293,7 +298,7 @@ async function renderBank(){
     <div class="toolbar"><div class="toolbar-left"><button class="btn btn-primary" id="bank-new-task" type="button">+ Agregar tarea</button><select id="bank-game" class="control select" aria-label="Filtrar por juego"><option value="">Todos los juegos</option>${data.games.map(x=>`<option value="${html(x.game)}">${html(x.game)}</option>`).join('')}</select>
     <select id="bank-save-filter" class="control select" aria-label="Filtrar por partida"><option value="">Todas las partidas</option><option value="0">Sin partida asignada</option>${state.bankSaves.map(p=>`<option value="${p.id}">${html(p.game)} · ${html(p.name)}</option>`).join('')}</select>
     <label class="switch"><input id="bank-show-all" type="checkbox" ${state.bankAll?'checked':''}> Mostrar completadas</label></div></div>
-    <div id="bank-table"></div><div class="notice"><strong>Lista de tareas:</strong> «Solo Bank» no necesita una entrada en la Pokédex. «En Shiny/Living Dex» identifica un objetivo elegido explícitamente; los contadores de HOME siguen siendo independientes y nunca se suman automáticamente.</div>`;
+    <div id="bank-table"></div><div class="notice"><strong>Bank es una lista de tareas:</strong> una tarea sin vínculo no cambia la Dex. En tareas vinculadas, transferir ejemplares a HOME actualiza la colección únicamente con OT propio o, si son ajenos, cuando el objetivo esté marcado «No obtenible con mi OT». Las cantidades se concilian sin duplicar al guardar y nunca se suman por capturar.</div>`;
   $('#bank-game').value=state.bankGame;
   $('#bank-game').addEventListener('change',e=>{state.bankGame=e.target.value;state.bankSaveFilter='';$('#bank-save-filter').value='';loadBankTable()});
   $('#bank-save-filter').value=state.bankSaveFilter;
@@ -317,7 +322,7 @@ async function loadBankTable(){
     return `<div class="panel"><div class="panel-header"><div><h2>${html(game)} <span class="tiny">· ${items.length} tareas</span></h2><div class="tiny">Estado del juego</div></div>
     <div class="game-checks"><label class="toggle-line"><input class="bank-flag" type="checkbox" data-game="${html(game)}" data-field="started" ${status?.started?'checked':''}> Comenzado</label><label class="toggle-line"><input class="bank-flag" type="checkbox" data-game="${html(game)}" data-field="prepared" ${status?.prepared?'checked':''}> Preparado</label></div></div>
     <div class="table-wrap"><table class="data-table"><thead><tr><th>Pokémon</th><th>Relación con Pokédex</th><th>Notas / método</th><th>Objetivo</th><th>Capturados</th><th>En HOME</th><th></th></tr></thead><tbody>
-    ${items.map(t=>`<tr data-bank-id="${t.id}"><td><div class="name-strong">${html(t.pokemon)}</div><div class="row-sub">${html(t.form_name||'Forma base')} · ${t.shiny?'Shiny':'Normal'}${t.ot_exception?' · OT ajeno':''} · ${t.save_name?html(t.save_name):'Sin partida asignada'}</div></td>
+    ${items.map(t=>`<tr data-bank-id="${t.id}"><td><div class="name-strong">${html(t.pokemon)}</div><div class="row-sub">${html(t.form_name||'Forma base')} · ${t.shiny?'Shiny':'Normal'}${t.ot_origin==='own'?' · Mi OT':t.ot_origin==='other'?' · OT ajeno':' · OT sin indicar'} · ${t.save_name?html(t.save_name):'Sin partida asignada'}</div></td>
     <td>${bankLinkLabel(t)}</td><td class="muted">${html(t.comments||'—')}</td><td>${t.required}</td><td><input class="tiny-input bank-caught" type="number" min="0" max="${t.required}" value="${t.caught}" aria-label="Capturados ${html(t.pokemon)}"></td>
     <td><input class="tiny-input bank-home" type="number" min="0" max="${t.required}" value="${t.in_home}" aria-label="HOME ${html(t.pokemon)}"></td>
     <td><button class="btn btn-small bank-save" type="button">Guardar</button> <button class="btn btn-small bank-edit" type="button">Editar</button></td></tr>`).join('')}</tbody></table></div></div>`;
@@ -350,10 +355,14 @@ function openBankTask(task=null){
     <div class="field"><label for="bt-caught">Capturados</label><input id="bt-caught" type="number" class="control" min="0" max="999" required value="${task?.caught||0}"></div>
     <div class="field"><label for="bt-home">Transferidos a HOME</label><input id="bt-home" type="number" class="control" min="0" max="999" required value="${task?.in_home||0}"></div>
     <div class="field"><label><input id="bt-shiny" type="checkbox" ${!task||task.shiny?'checked':''}> Shiny</label></div>
-    <div class="field"><label><input id="bt-ot" type="checkbox" ${task?.ot_exception?'checked':''}> OT ajeno (NOT)</label></div>
+    <div class="field"><label for="bt-ot-origin">OT del ejemplar</label>
+      <select id="bt-ot-origin" class="control">
+        <option value="unspecified">Sin indicar</option>
+        <option value="own">Propio</option>
+        <option value="other">Ajeno</option></select></div>
     <div class="field full"><label for="bt-comments">Notas / método</label><textarea id="bt-comments" class="control" rows="3" maxlength="1000">${html(task?.comments||'')}</textarea></div>
     </div>
-    <label class="dex-ot-field"><input id="bt-linked" type="checkbox" ${task?.goal_id?'checked':''}><span><strong>Relacionar con un objetivo de la Pokédex</strong><small>Desmarcado = Solo Bank. Marcado = vínculo explícito con Shiny/Living Dex. No sincroniza HOME.</small></span></label>
+    <label class="dex-ot-field"><input id="bt-linked" type="checkbox" ${task?.goal_id?'checked':''}><span><strong>Vincular a Shiny/Living Dex</strong><small>Desmarcado = Solo Bank. La vinculación es opcional. Solo una transferencia efectiva (En HOME), con OT elegible, puede actualizar la Dex.</small></span></label>
     <div id="bt-link-fields" class="field" style="margin-top:12px">
       <label for="bt-link-search">Buscar objetivo existente en la Pokédex</label>
       <div style="display:flex;gap:8px"><input id="bt-link-search" class="control" maxlength="100" value="${html(task?.pokemon||'')}" placeholder="Nombre o n.º de Pokédex"><button id="bt-find" type="button" class="btn">Buscar</button></div>
@@ -363,6 +372,7 @@ function openBankTask(task=null){
     </div>
     <div class="form-actions">${editing?'<button type="button" class="btn" id="bt-delete">Eliminar tarea</button>':''}<button type="button" class="btn" id="bt-cancel">Cancelar</button><button class="btn btn-primary" type="submit">${editing?'Guardar cambios':'Agregar tarea'}</button></div>
     </form>`);
+  $('#bt-ot-origin').value=task?.ot_origin|| (task?.ot_exception?'other':'unspecified');
   const linked=$('#bt-linked'), fields=$('#bt-link-fields'), selection=$('#bt-goal');
   function showLink(){fields.classList.toggle('hidden',!linked.checked);}
   linked.addEventListener('change',showLink);showLink();
@@ -389,7 +399,7 @@ function openBankTask(task=null){
   });
   if(editing){
     $('#bt-delete').addEventListener('click',async()=>{
-      if(!window.confirm('¿Eliminar esta tarea de Bank? No se modificará la Pokédex.'))return;
+      if(!window.confirm('¿Eliminar esta tarea de Bank? Las transferencias sincronizadas con la Dex se recalcularán.'))return;
       try{
         const resp=await fetch('/api/bank/'+task.id,{method:'DELETE'});
         if(!resp.ok)throw Error('No se pudo eliminar la tarea ('+resp.status+')');
@@ -405,7 +415,7 @@ function openBankTask(task=null){
     const data={
       game:selectedSave?.game||task?.game||'',save_id:selectedSave?.id||null,pokemon:$('#bt-pokemon').value.trim(),
       form_name:$('#bt-form').value.trim()||null,comments:$('#bt-comments').value.trim(),
-      shiny:$('#bt-shiny').checked,ot_exception:$('#bt-ot').checked,
+      shiny:$('#bt-shiny').checked,ot_origin:$('#bt-ot-origin').value,
       required:Number($('#bt-required').value),caught:Number($('#bt-caught').value),
       in_home:Number($('#bt-home').value),goal_id:linked.checked?Number(selection.value):null
     };
