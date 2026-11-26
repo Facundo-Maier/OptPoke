@@ -161,7 +161,14 @@ def apply_austin_plan(plan: dict) -> dict:
     # Only the exact changed fields are updated. Unlisted goals are untouched.
     with connect() as db:
         for change in plan["changes"]:
-            values = change["updates"]
+            values = dict(change["updates"])
+            if "in_home" in values:
+                # The Excel is authoritative for its rows: applying it replaces
+                # previously credited Bank transfer contributions for this goal,
+                # but does not change the Bank task's captured/transfer history.
+                db.execute("UPDATE bank_tasks SET synced_home=0 WHERE goal_id=?",
+                           (change["goal_id"],))
+                values["manual_home"] = values["in_home"]
             db.execute("UPDATE goals SET " + ", ".join(f"{column}=?" for column in values)
                        + " WHERE id=?", [*values.values(), change["goal_id"]])
     return {"applied": len(plan["changes"]), "counts": plan["counts"], "warnings_total": plan["warnings_total"]}

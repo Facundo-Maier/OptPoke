@@ -30,6 +30,8 @@ erDiagram
     boolean shiny
     int target
     int in_home
+    int manual_home
+    string own_ot_obtainability
     string obtainability
   }
   GAME_SAVES {
@@ -46,6 +48,8 @@ erDiagram
     int required
     int caught
     int in_home
+    string ot_origin
+    int synced_home
   }
   HUNTS {
     int id PK
@@ -87,7 +91,20 @@ erDiagram
 
 ## Primera etapa de integración de Bank (v0.2 en desarrollo)
 
-Bank funciona como una TODO list editable mediante `GET/POST /api/bank` y `PATCH/DELETE /api/bank/{task_id}`. El campo opcional `goal_id` apunta a un objetivo de la Pokédex solo si el usuario lo selecciona explícitamente; `NULL` significa «Solo Bank», incluso para tareas importadas antiguamente. La interfaz permite buscar objetivos con `GET /api/bank/goal-options`, sin asociar automáticamente especies ni formas. `in_home` de Bank y de la Pokédex siguen independientes y no se suman. Ver [BANK_TODO.md](BANK_TODO.md).
+Bank funciona como una TODO list editable mediante `GET/POST /api/bank` y `PATCH/DELETE /api/bank/{task_id}`. El campo opcional `goal_id` apunta a un objetivo de la Pokédex solo si el usuario lo selecciona explícitamente; `NULL` significa «Solo Bank», incluso para tareas importadas antiguamente. La interfaz permite buscar objetivos con `GET /api/bank/goal-options`, sin asociar automáticamente especies ni formas. Las transferencias de tareas vinculadas se acreditan solo con OT elegible y sin sumarlas dos veces. El avance de Bank sigue siendo una TODO list independiente. Ver [BANK_TODO.md](BANK_TODO.md).
+
+## Conciliación de HOME y OT (v0.2)
+
+`bank_tasks.ot_origin` (sin indicar, propio, ajeno) es distinto de
+`goals.own_ot_obtainability` (sin verificar, obtenible, no obtenible) y del
+indicador `goals.ot_exception` (NOT, sin inferir posesión).
+El progreso de Dex es `min(target, manual_home + SUM(bank_tasks.synced_home))`;
+la suma solo incluye transferencias elegibles, no capturas. Repetir guardados,
+editar o eliminar tareas o cambiar la disponibilidad OT reconcilia
+transaccionalmente los aportes. Las tareas existentes se migran sin créditos.
+La importación Excel preserva su autoridad sobre los campos incluidos:
+reinicia créditos de Bank para las filas cuyo HOME sobrescribe.
+La sincronización real con partidas o Pokémon HOME no está incluida.
 
 ## Juegos y partidas (v0.2)
 
@@ -95,7 +112,7 @@ El catálogo de `games` ya existía; ahora cada título puede tener muchas entra
 
 ## Decisiones futuras
 
-1. Mantener las tareas Bank independientes salvo vínculo explícito; cualquier sincronización futura necesita primero identificar ejemplares concretos y evitar doble conteo.
+1. Mantener Bank como TODO independiente. La conciliación por cantidades declaradas ya evita duplicados; sincronizar ejemplares concretos requerirá identificarlos.
 2. Conservar la semántica ya implementada de `EVO` como evolución pendiente independiente del progreso en HOME.
 3. Completar los sprites de formas que no tienen una imagen correcta y, cuando sea necesario, revisar los registros de ausencia guardados.
 4. Crear catálogo versionado de juegos, métodos, probabilidades, restricciones de OT y fuentes verificables.

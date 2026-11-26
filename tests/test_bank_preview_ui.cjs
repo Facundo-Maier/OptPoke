@@ -14,11 +14,20 @@ test('Bank TODO editor is syntactically valid and supports create, edit and dele
   assert.match(source, /bank-new-task/);
 });
 
-test('Bank TODO classification is explicit and never synchronizes HOME', () => {
+test('Bank TODO links are explicit and HOME credit requires transferred eligible OT', () => {
   assert.match(source, /Solo Bank/);
-  assert.match(source, /Relacionar con un objetivo de la Pokédex/);
+  assert.match(source, /Vincular a Shiny\/Living Dex/);
+  assert.match(source, /Vinculada a/);
   assert.match(source, /bank\/goal-options/);
   assert.match(source, /goal_id:linked\.checked/);
-  assert.match(source, /no sincroniza automáticamente HOME/);
+  assert.match(source, /ot_origin:/);
+  assert.match(source, /bt-ot-origin/);
+  assert.match(source, /no cambia la Dex/);
   assert.doesNotMatch(source, /request\('\/api\/bank\/reconciliation'\)/);
+});
+test('Dex editor separates OT obtainability from NOT and HOME', () => {
+  assert.match(source, /id="g-own-ot"/);
+  assert.match(source, /id="g-ot"/);
+  assert.match(source, /No obtenible con mi OT/);
+  assert.match(source, /No significa que esté obtenido/);
 });

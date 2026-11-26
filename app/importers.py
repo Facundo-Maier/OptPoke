@@ -44,8 +44,9 @@ def import_bank(path: str | Path) -> dict:
         db.executemany("INSERT OR IGNORE INTO bank_game_status(game) VALUES (?)",
                        [(t[0],) for t in tasks])
         db.executemany("""INSERT OR IGNORE INTO bank_tasks
-            (game,pokemon,form_name,comments,shiny,ot_exception,required,source_row)
-            VALUES(?,?,?,?,?,?,?,?)""", tasks)
+            (game,pokemon,form_name,comments,shiny,ot_exception,required,source_row,ot_origin)
+            VALUES(?,?,?,?,?,?,?,?,?)""",
+            [(*task, "other" if task[5] else "unspecified") for task in tasks])
         db.execute("INSERT INTO import_history(digest,kind) VALUES (?,?)", (digest, "bank"))
     return {"imported": True, "tasks": len(tasks), "games": len(games)}
 
