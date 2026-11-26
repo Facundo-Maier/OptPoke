@@ -2,10 +2,7 @@
 
 Organizador local de Living Shiny Dex, objetivos Bank y cacerías.
 Python 3.11+ y navegador; FastAPI, SQLite y JavaScript sin compilación.
-Versión de desarrollo: **0.1.99**. Shiny Dex y Living Dex son las secciones
-funcionales verificadas. Bank, Cacerías, Comparador y otras herramientas son
-provisionales: contienen bases de implementación o placeholders y todavía
-no se presentan como funciones completas.
+Versión pública: **v0.1.99**. La rama `develop` contiene funciones en desarrollo para v0.2, en particular Bank y juegos/partidas; Cacerías y Comparador todavía no se presentan como funciones completas. Consultá el [manual de uso de develop](docs/MANUAL_USUARIO.md) para las reglas actuales.
 
 ## Instalación
 
@@ -41,14 +38,9 @@ en una sesión que se vaya a mostrar a otras personas.
 
 ## Progreso y actualización
 
-Importación XLSX desde Configuración, con vista previa y confirmación separada
-para Shiny y Living. `NOT` indica OT ajeno, no captura; `EVO` marca «Por evolucionar» en la fila del objetivo (Alakazam si tenés Kadabra). No suma HOME: el Excel prevalece sobre el estado anterior: 0 pone un ejemplar en HOME; 1 y EVO ponen cero. NOT solo marca OT ajeno; no informa captura. Los objetivos ausentes del archivo no cambian. La marca puede editarse y filtrarse, y se retira al completar el objetivo.
-La exportación JSON permite respaldar progreso; restaurar reemplaza los datos.
-Guardá los respaldos y Excel fuera del repositorio.
+La importación XLSX se hace desde Configuración, con vista previa y confirmación independientes para Shiny y Living. La exportación JSON permite hacer copias de seguridad; restaurar **reemplaza** el progreso actual. El [manual de uso](docs/MANUAL_USUARIO.md) explica HOME, EVO, OT, tareas Bank y partidas. Guardá respaldos y Excel fuera del repositorio.
 
-Para actualizar: detener el servidor, ejecutar `git pull --ff-only`, instalar
-`pip install -r requirements.txt` y volver a iniciarlo. No reemplazar la base ni
-restaurar un respaldo antiguo. Antes de actualizar, exportar un respaldo propio.
+Para actualizar: detener el servidor, ejecutar `git pull --ff-only`, instalar `pip install -r requirements.txt` y volver a iniciarlo. Antes de actualizar, exportar un respaldo propio.
 
 ## Auditoría de sprites (opcional)
 
@@ -66,9 +58,7 @@ La [guía de auditoría](docs/SPRITES.md) explica cómo revisar las formas y có
 
 Los cambios se implementan en **ramas nuevas creadas desde `develop`** y se proponen mediante PR hacia `develop`, con pruebas en la propia rama. Solo se integra `develop` en `main` para una versión probada y destinada a publicación; ver [Releases](docs/RELEASING.md).
 
-La v0.2 incorpora [Bank como TODO list editable](docs/BANK_TODO.md), y [Juegos y partidas](docs/GAME_SAVES.md) como catálogo de títulos disponibles con varias partidas independientes por juego. Las tareas nuevas de Bank se asignan a una partida configurada; las anteriores no se borran ni se asocian automáticamente. Las transferencias declaradas de tareas Bank vinculadas se concilian con HOME
-solo cuando su OT es elegible; NOT sigue sin implicar posesión. Ver las reglas
-y límites en [BANK_TODO.md](docs/BANK_TODO.md). El menú lateral puede plegarse desde la barra superior para ampliar el área de contenido.
+La rama `develop` ya permite gestionar tareas Bank y partidas y conciliar transferencias elegibles con el progreso de la Pokédex. El control del menú está fijo en el borde izquierdo. Consultá las reglas de uso en el [manual](docs/MANUAL_USUARIO.md) y el estado de cada hito en el [roadmap](docs/ROADMAP.md).
 
 ## Desarrollo
 
@@ -86,7 +76,7 @@ No hay bundle frontend que compilar: HTML, CSS y JS se sirven directamente.
 
 ## Publicación y licencia
 
-- [Proceso de releases y SemVer](docs/RELEASING.md)
+- [Guía para preparar y publicar versiones](docs/RELEASING.md)
 - [Cambios](CHANGELOG.md) y [roadmap](docs/ROADMAP.md)
 - Código propio: **MIT**, Copyright (c) 2026 Facundo Maier. Conservar LICENSE.
 - [Atribuciones y condiciones de terceros](THIRD_PARTY_NOTICES.md).

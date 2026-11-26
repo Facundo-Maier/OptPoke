@@ -35,8 +35,6 @@ La v1.0 no exige cubrir todos los juegos, especies, formas o métodos posibles, 
 - [x] Selector de partidas configuradas al agregar tareas Bank; las anteriores se conservan sin partida asignada.
 - [x] Migración SQLite y respaldo compatibles con perfiles nuevos y datos anteriores.
 - [x] Mostrar en ambas Pokédex la opción de filtro por juegos disponibles como **próximamente** (deshabilitada).
-- [ ] Implementar el filtro con datos verificados de disponibilidad por especie y forma en cada juego.
-
 - [x] Bank como lista de tareas editable: agregar, modificar, eliminar tareas y mantener cantidades de captura/HOME.
 - [x] Distinguir tareas «Solo Bank» de tareas asociadas explícitamente a Shiny/Living Dex, con vínculo reversible.
 - [x] Migración aditiva y respaldo compatible con tareas existentes sin vínculo.
@@ -48,7 +46,7 @@ La v1.0 no exige cubrir todos los juegos, especies, formas o métodos posibles, 
 - [ ] Revisar visualmente los cambios con datos locales antes del merge.
 - [ ] Verificar con datos sintéticos las migraciones y el ciclo exportar → restaurar, y probar manualmente los recorridos principales antes de publicar v0.2.
 
-La conciliación actual es de cantidades declaradas por tarea. La sincronización real de ejemplares concretos y partidas sigue fuera de v1.0: necesitará una identidad por ejemplar y datos de juego verificados. La opción de filtrar la Pokédex por Pokémon obtenibles en los juegos disponibles también requiere datos verificados y se aborda en v0.4.
+La conciliación actual es de cantidades declaradas por tarea. La sincronización real de ejemplares concretos y partidas sigue fuera de v1.0; la disponibilidad verificada por especie y forma y el filtro de juegos se abordan en v0.4.
 
 ## v0.3 — Cacerías avanzadas
 
@@ -75,7 +73,7 @@ La conciliación actual es de cantidades declaradas por tarea. La sincronizació
 
 - [ ] Revisar recorridos entre Pokédex, Bank, partidas, cacerías y comparador; añadir vínculos o accesos donde aporten utilidad.
 - [ ] Mantener coherentes los nombres, estados, filtros y cantidades mostradas en las distintas secciones.
-- [ ] Probar los casos con varios ejemplares, varias partidas, tareas sin vínculo y objetivos sin método disponible, sin sumar contadores HOME independientes.
+- [ ] Probar los casos con varios ejemplares, varias partidas, tareas sin vínculo y objetivos sin método disponible, sin duplicar aportes de transferencias declaradas Bank → HOME.
 
 ## v0.6 — Interfaz
 
@@ -104,10 +102,16 @@ La conciliación actual es de cantidades declaradas por tarea. La sincronizació
 - [ ] Documentación de uso y limitaciones coherente con la aplicación; demo ficticia y distribución sin datos privados.
 - [ ] Pruebas automatizadas y revisión manual de interfaz satisfactorias; publicar desde `main` según [RELEASING.md](RELEASING.md).
 
+## Después de v1.0 — Ideas fuera del alcance acordado
+
+- [ ] Evaluar si conviene identificar cada ejemplar para reconciliar transferencias individuales sin perder la separación entre tareas Bank y objetivos de colección.
+- [ ] Estudiar la disponibilidad legítima por juego y partida y si es viable integrar datos externos de partidas o Pokémon HOME. No inferir posesión ni OT a partir de la selección de un juego.
+
 ## Calidad transversal
 
 - [x] Documentación, licencia MIT del código, atribución de fuentes y demo ficticia.
 - [x] GitHub Actions y release pública v0.1.99.
 - [ ] Para cada cambio de datos o esquema, probar migración y respaldo antes de integrar la versión.
+- [ ] Revisar la distribución de responsabilidades entre API, persistencia e interfaz en un cambio futuro, preservando el comportamiento existente.
 - [ ] Revisar licencias de recursos nuevos y comprobar antes de cada release que no se publiquen Excel, cachés, capturas con progreso ni bases privadas.
 - [ ] Mantener visibles las limitaciones de sprites, métodos y formas sin datos verificados; no sustituir deliberadamente una forma o color por otro.
