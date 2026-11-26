@@ -1,4 +1,6 @@
-# Releases de Opt. Poke
+# Preparación y publicación de versiones — Opt. Poke
+
+Esta guía es para quien mantiene el repositorio. Define cuándo un cambio entra en `develop`, cómo se prepara una versión en `main` y qué ocurre al crear su etiqueta. No es un manual de uso de la aplicación; para eso consultá [MANUAL_USUARIO.md](MANUAL_USUARIO.md).
 
 La primera release pública, **[v0.1.99](https://github.com/Facundo-Maier/OptPoke/releases/tag/v0.1.99)**, se publicó el 13 de noviembre de 2026 con ZIP y `SHA256SUMS`. No se deben volver a crear ni mover esa etiqueta.
 

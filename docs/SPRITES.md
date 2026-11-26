@@ -1,93 +1,54 @@
-# Auditoría de sprites — Opt. Poke
+# Auditoría técnica de sprites — Opt. Poke
 
-## Objetivo
+Esta guía permite comprobar la caché local y revisar la correspondencia de especie, forma y color. El uso normal de la aplicación y el significado de los marcadores se explican en [MANUAL_USUARIO.md](MANUAL_USUARIO.md).
 
-Identificar qué sprites de Shiny Dex y Living Dex están en la caché local, cuáles todavía no se intentaron descargar y cuáles requieren corregir la correspondencia de una forma regional o alternativa. **Un archivo cacheado no garantiza que la forma o color shiny sean correctos**: la verificación visual sigue siendo necesaria.
+Una imagen cacheada no garantiza que la forma o el color shiny sean correctos. La auditoría usa la caché de `~/.optpoke/sprites/` (o `OPTPOKE_DATA_DIR/sprites/`) y las fuentes definidas en `static/sprites.js`.
 
-La aplicación guarda sprites en `~/.optpoke/sprites/` (o `$OPTPOKE_DATA_DIR/sprites/`). La auditoría reutiliza el resolvedor de `static/sprites.js`, sin descargar imágenes por defecto.
+## Inventario sin conexión
 
-## 1. Inventario sin conexión
-
-Desde la carpeta del repositorio en WSL:
+Desde el repositorio:
 
 ```bash
 node scripts/auditar_sprites.cjs
-# Solo formas especiales:
 node scripts/auditar_sprites.cjs --solo-especiales
 ```
 
-Esto **no realiza solicitudes HTTP**. Genera archivos locales en `reportes_sprites/` (excluidos de Git):
+Sin `--probar-online` no hay solicitudes HTTP. Se generan informes en `reportes_sprites/`, ignorado por Git. Se puede cambiar la carpeta con `--salida DIR`.
 
 | Archivo | Contenido |
 | --- | --- |
-| `resumen.json` | Cantidades por estado, fecha y carpeta de caché |
-| `inventario.csv` | Todos los objetivos revisados (shiny y normales) |
-| `pendientes.csv` | Objetivos sin imagen ya cacheada |
-| `pendientes_especiales.csv` | Pendientes con forma alternativa o regional |
+| `resumen.json` | Totales por estado, fecha y carpeta de caché. |
+| `inventario.csv` | Todos los objetivos revisados. |
+| `pendientes.csv` | Objetivos sin imagen cacheada. |
+| `pendientes_especiales.csv` | Formas alternativas o regionales pendientes. |
 
 Los CSV usan punto y coma y BOM UTF-8 para facilitar su apertura en Excel.
 
-### Estados
+| Estado | Interpretación |
+| --- | --- |
+| `cacheado_revisar_forma` | Hay un archivo; falta confirmar visualmente variante y color. |
+| `sin_comprobar` | Quedan fuentes sin consultar; no equivale a «no existe imagen». |
+| `sin_imagen_en_fuentes_configuradas` | Se agotaron las fuentes configuradas; puede haber otras. |
+| `sin_fuente_configurada` | Falta mapear esa forma. |
+| `revisar_cache` | Hay metadatos de caché inconsistentes. |
 
-- `cacheado_revisar_forma`: existe un archivo local; falta verificar manualmente especie, variante y color.
-- `sin_comprobar`: ninguna fuente probada con éxito y quedan alternativas sin consultar; **no significa que no exista sprite**.
-- `sin_imagen_en_fuentes_configuradas`: las fuentes conocidas están agotadas; podría existir otra.
-- `sin_fuente_configurada`: falta definir el mapeo de esa forma.
-- `revisar_cache`: metadatos cacheados inconsistentes.
-  
-## 2. Comprobación online opcional y limitada
+## Comprobación opcional con red
 
-Si elegís hacerlo, iniciá primero la aplicación:
+Iniciá primero el servidor local y, en otra terminal, solicitá un número limitado de consultas:
 
 ```bash
-source .venv/bin/activate
 python -m uvicorn app.main:app --reload
-```
-
-En otra terminal WSL, desde el proyecto:
-
-```bash
 node scripts/auditar_sprites.cjs --solo-especiales --probar-online 20
 ```
 
-`20` es el máximo de **consultas a la API local**, no de Pokémon. El límite permitido es de 1 a 30 por ejecución, con una breve pausa entre solicitudes. La API local puede consultar proveedores autorizados para archivos todavía no cacheados; las respuestas se conservan en disco. No se ejecutan comprobaciones en segundo plano. Sin `--probar-online` no hay tráfico.
+`20` limita consultas a la API local, no Pokémon; el valor aceptado es de 1 a 30. La API puede consultar proveedores autorizados para imágenes todavía no cacheadas. No hay comprobaciones automáticas en segundo plano.
 
-También podés pasar `--salida DIR` para elegir otra carpeta de informes.
+## Revisión y corrección
 
-## 3. Revisión visual
+1. Revisá primero `pendientes_especiales.csv` y después los archivos cacheados cuya forma/color faltan por confirmar.
+2. Comprobá especie, forma, variante y condición shiny. Priorizá Unown, Vivillon, Alcremie, Pikachu con gorra, Tauros de Paldea, flores de Flabébé/Floette/Florges y Minior.
+3. Si falta una imagen, revisá los alias y fuentes en `static/sprites.js`; ante la duda, conservá el marcador de ausencia.
+4. Si cambiás un mapeo, agregá una regresión en `tests/test_sprites.cjs`. Una fuente nueva requiere revisar seguridad y atribución en `app/sprite_cache.py`.
+5. Si una fuente que devolvió 404 vuelve a funcionar, invalidá solo el marcador de esa ruta, no toda la caché.
 
-Inspeccioná primero los registros de `pendientes_especiales.csv` y después los sprites cacheados que necesitan validación visual. Confirmá especie, forma, variante y color shiny/no shiny. Priorizá Unown, Vivillon, Alcremie, Pikachu con gorra, Tauros de Paldea, flores de Flabébé/Floette/Florges y Minior.
-
-Para resolver una ausencia:
-
-1. Revisá el nombre/alias en `static/sprites.js` (`showdownForm`, `alcremieSources`, `spriteSources`, `pokeApiVariety`).
-2. Usá solo una imagen de la **forma y condición shiny correctas**; ante la duda, mantené el marcador de ausencia.
-3. Si modificás el mapeo, agregá una prueba en `tests/test_sprites.cjs`.
-4. No desactives las validaciones de fuentes de `app/sprite_cache.py`: cualquier fuente adicional requiere revisión de seguridad, estabilidad y atribución.
-5. Si una fuente antes devolvió 404 y ahora existe, invalidá solo el marcador de ausencia correspondiente, no toda la caché.
-
-No es necesario descargar las 2.498 entradas de la Pokédex: primero auditamos lo que ya existe y hacemos comprobaciones puntuales. La auditoría completa depende de la caché real de tu instalación WSL; **no puede inferirse únicamente del repositorio**.
-
-## Casos resueltos a partir del informe del 16/11/2026
-
-- Shiny Deerling y Sawsbuck, forma `Fall`: Showdown utiliza `autumn`.
-- Shiny Dudunsparce, `3 Segment`: Showdown utiliza `threesegment`.
-- Living Pikachu, `World Cap`: el render exacto se encuentra en `sprites/home/pikachu-world.png`.
-
-Estos cuatro cambios usan rutas nuevas: los registros 404 de rutas anteriores no necesitan borrarse. Luego de actualizar la rama, visitar los Pokémon o ejecutar la auditoría opcional con un límite pequeño para llenar la caché; finalmente verificar visualmente las imágenes. Los demás 190 casos del informe inicial siguen **sin comprobar**, no necesariamente sin imagen.
-
-### Segunda auditoría (16/11/2026)
-
-Tras navegar las Pokédex, la caché pasó de **444 a 626** objetivos de formas especiales con imagen; los pendientes bajaron de 194 a 12 (1 sin comprobar, 11 sin imagen en las fuentes configuradas). Se detectaron alias adicionales que requieren usar el nombre del sprite de la forma base:
-
-- Unown letra `a` shiny → `unown.png` (único sin comprobar, además de un 404 de una fuente).
-- Oricorio `Baile Style` (normal/shiny) → `oricorio.png`.
-- Minior `Red Core` (normal/shiny) → `minior.png`.
-
-Las demás entradas con 404 del segundo informe corresponden a Deerling, Sawsbuck, Dudunsparce y Pikachu World Cap (ya incluidos en la misma corrección). Los resultados son **por colección**, por lo que una misma forma puede contarse dos veces.
-
-Después de fusionar el PR, recorrer las variantes afectadas para que se cacheen las nuevas rutas y repetir la auditoría. No eliminar los marcadores 404 de las rutas antiguas; son distintos archivos. Que un sprite exista sigue sin sustituir la revisión visual de su variante correcta.
-
-## Cierre de revisión inicial (17/11/2026)
-
-En la última auditoría compartida se registraron **638 objetivos especiales**, con **631 imágenes en caché**, **7 sin comprobar automáticamente** y **0 con todas sus fuentes agotadas**. Las comprobaciones visuales pendientes se revisaron satisfactoriamente según el usuario. Se considera cerrada la auditoría inicial para iniciar la v0.2, sin interpretar «en caché» como prueba automática de la corrección de los 638 colores o formas.
+La auditoría de una instalación depende de su caché real: los archivos del repositorio por sí solos no prueban qué imágenes tiene cada usuario. Los resultados de auditorías pasadas quedan resumidos en [CHANGELOG.md](../CHANGELOG.md) y [ROADMAP.md](ROADMAP.md).
