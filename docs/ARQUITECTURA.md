@@ -1,6 +1,6 @@
 # Estructura técnica actual — Opt. Poke
 
-Este documento describe cómo está organizado `develop` actualmente. La reorganización futura de módulos se decidirá por separado; las decisiones de producto pendientes viven en [ROADMAP.md](ROADMAP.md) y las instrucciones de uso en [MANUAL_USUARIO.md](MANUAL_USUARIO.md).
+Este documento describe cómo está organizado `develop` actualmente. La [arquitectura propuesta](ARQUITECTURA_PROPUESTA.md) se revisa por separado; las decisiones de producto pendientes viven en [ROADMAP.md](ROADMAP.md) y las instrucciones de uso en [MANUAL_USUARIO.md](MANUAL_USUARIO.md).
 
 ## Recorrido de los datos
 
